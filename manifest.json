@@ -1,0 +1,16 @@
+{
+  "name": "Pixel Ugró",
+  "short_name": "Pixel Ugró",
+  "description": "Pixeles retro 2D platformer",
+  "start_url": "./pixel-ugro.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#120c2a",
+  "theme_color": "#120c2a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
