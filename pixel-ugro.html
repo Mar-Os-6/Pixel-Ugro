@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#120c2a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pixel Ugró">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+<title>Pixel Ugró</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c1438; --deep:#120c2a; --plum:#3d2c75; --cream:#fff1d6; --gold:#ffc94a; --coral:#ff6b7a;
+  --w:min(100vw,calc(100vh*20/11));
+  --u:calc(var(--w)/320);
+  --px:clamp(2px,.6vmin,5px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--deep);overflow:hidden;overscroll-behavior:none}
+body{
+  display:grid;place-items:center;
+  font-family:"Press Start 2P","Courier New",monospace;color:var(--cream);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+@media (orientation:portrait){
+  body{place-items:start center;padding-top:env(safe-area-inset-top)}
+}
+#stage{position:relative;width:var(--w);height:var(--h)}
+canvas{display:block;width:100%;height:100%;image-rendering:crisp-edges;image-rendering:pixelated;background:#000}
+
+/* jobb felső gombok: szünet, hang */
+.hud{position:absolute;top:calc(var(--u)*4);right:calc(var(--u)*4);display:flex;gap:calc(var(--u)*3)}
+.ico{
+  width:clamp(30px,calc(var(--u)*11),56px);height:clamp(30px,calc(var(--u)*11),56px);
+  padding:16%;border:0;cursor:pointer;color:var(--cream);
+  background:rgba(28,20,56,.72);box-shadow:inset 0 0 0 var(--px) rgba(255,241,214,.6);
+}
+.ico svg{width:100%;height:100%;display:block;fill:currentColor;shape-rendering:crispEdges}
+.ico:focus-visible{outline:var(--px) solid var(--gold)}
+#btnMute .slash{display:none}
+#btnMute.off .wave{display:none}
+#btnMute.off .slash{display:inline}
+.ico[hidden]{display:none}
+
+/* Fordítsd el a telefont – csak érintős eszközön, álló tájolásban */
+#rotate{
+  display:none;position:fixed;inset:0;z-index:6;background:var(--deep);
+  align-items:center;justify-content:center;text-align:center;padding:20px;
+}
+@media (pointer:coarse) and (orientation:portrait){ #rotate{display:flex} }
+#rotate[data-dismissed="1"]{display:none !important}
+.rot-phone{
+  width:clamp(40px,10vmin,64px);height:clamp(64px,16vmin,100px);margin:0 auto 1.4em;
+  border:var(--px) solid var(--cream);border-radius:6px;position:relative;
+  animation:rotphone 2.4s ease-in-out infinite;
+}
+.rot-phone::after{content:"";position:absolute;left:50%;bottom:8%;width:14%;height:3%;background:var(--cream);transform:translateX(-50%)}
+@keyframes rotphone{0%,35%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+#rotate p{font-size:clamp(11px,3vmin,16px);line-height:1.7;max-width:22em;margin:0 0 1.2em}
+#rotate .btn{font-size:clamp(9px,2.4vmin,13px)}
+
+/* menük */
+#overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(18,12,42,.62);padding:12px;z-index:4}
+#overlay[hidden]{display:none}
+.panel{
+  width:min(92vw,560px);max-height:92vh;overflow:auto;background:var(--ink);
+  padding:calc(var(--px)*6);text-align:center;
+  font-size:clamp(10px,2.4vmin,18px);line-height:1.8;
+  box-shadow:
+    0 0 0 var(--px) var(--gold),
+    0 0 0 calc(var(--px)*2) var(--ink),
+    calc(var(--px)*4) calc(var(--px)*4) 0 calc(var(--px)*2) rgba(0,0,0,.4);
+}
+.panel[hidden]{display:none}
+.panel h1,.panel h2{margin:0 0 .8em;font-weight:400;line-height:1.25;color:var(--gold)}
+.panel h1{
+  font-size:clamp(20px,6.4vmin,44px);
+  text-shadow:var(--px) var(--px) 0 var(--coral),calc(var(--px)*2) calc(var(--px)*2) 0 #8a2f5f;
+}
+.panel h2{font-size:clamp(14px,4.2vmin,28px)}
+.panel p{margin:0 0 1em}
+.hint{opacity:.8;font-size:.8em}
+.best{color:var(--gold);margin:.4em 0 0}
+.stat{display:flex;justify-content:space-between;gap:1em;max-width:22em;margin:0 auto .5em}
+.stat b{font-weight:400;color:var(--gold)}
+.btn{
+  font:inherit;color:var(--ink);background:var(--gold);border:0;cursor:pointer;
+  padding:.9em 1.6em;margin:.4em;box-shadow:0 calc(var(--px)*2) 0 #b47a1d;
+}
+.btn:active{transform:translateY(var(--px));box-shadow:0 var(--px) 0 #b47a1d}
+.btn.alt{background:var(--plum);color:var(--cream);box-shadow:0 calc(var(--px)*2) 0 #23184a}
+.btn.alt:active{box-shadow:0 var(--px) 0 #23184a}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible{outline:var(--px) solid var(--cream);outline-offset:var(--px)}
+.touchonly{display:none}
+@media (pointer:coarse){.kbd{display:none}.touchonly{display:block}}
+html.has-touch .kbd{display:none}
+html.has-touch .touchonly{display:block}
+
+/* érintős vezérlők */
+:root{--tscale:1}
+html[data-tsize="s"]{--tscale:.8}
+html[data-tsize="l"]{--tscale:1.25}
+#touch{
+  position:fixed;left:0;right:0;bottom:0;display:none;justify-content:space-between;align-items:flex-end;
+  padding:12px max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  pointer-events:none;z-index:5;
+}
+html[data-hand="left"] #touch{flex-direction:row-reverse}
+@media (pointer:coarse){#touch{display:flex}}
+html.has-touch #touch{display:flex}
+body.menu:not(.show-touch) #touch{visibility:hidden}
+.pad{display:flex;gap:clamp(10px,3vmin,24px);padding:8px;pointer-events:auto;touch-action:none}
+.tbtn{
+  --s:calc(clamp(64px,17vmin,104px)*var(--tscale));
+  position:relative;width:var(--s);height:var(--s);
+  border:0;padding:0;display:grid;place-items:center;
+  background:rgba(255,241,214,.14);box-shadow:inset 0 0 0 var(--px) rgba(255,241,214,.5);
+  touch-action:none;-webkit-touch-callout:none;
+}
+.pad .tbtn{pointer-events:none}
+.tbtn.jump{pointer-events:auto}
+.tbtn.jump::after{content:"";position:absolute;inset:-14px}
+.tbtn.on{background:rgba(255,241,214,.38)}
+.tbtn.jump{background:rgba(255,107,122,.28);box-shadow:inset 0 0 0 var(--px) rgba(255,180,190,.7)}
+.tbtn.jump.on{background:rgba(255,107,122,.55)}
+.tbtn i{display:block;width:38%;height:38%;background:var(--cream)}
+.tbtn .l{clip-path:polygon(100% 0,100% 100%,0 50%)}
+.tbtn .r{clip-path:polygon(0 0,100% 50%,0 100%)}
+.tbtn .u{clip-path:polygon(50% 0,100% 100%,0 100%)}
+
+/* beállítások */
+.needs-touch{display:none}
+@media (pointer:coarse){.needs-touch{display:inline-block}}
+html.has-touch .needs-touch{display:inline-block}
+.row{display:grid;gap:.5em;margin:0 0 1.1em;text-align:left}
+.seg{display:flex;gap:calc(var(--px)*2)}
+.seg button{
+  flex:1;font:inherit;font-size:.85em;padding:.8em .3em;border:0;cursor:pointer;
+  color:var(--cream);background:var(--plum);box-shadow:0 calc(var(--px)*2) 0 #23184a;
+}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--gold);box-shadow:0 calc(var(--px)*2) 0 #b47a1d}
+.seg button:focus-visible{outline:var(--px) solid var(--cream);outline-offset:var(--px)}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="game" width="320" height="176"></canvas>
+  <div class="hud">
+    <button id="btnMute" class="ico" type="button" aria-label="Hang be/ki">
+      <svg viewBox="0 0 10 8" aria-hidden="true">
+        <rect x="0" y="3" width="2" height="2"/><rect x="2" y="2" width="2" height="4"/><rect x="4" y="1" width="2" height="6"/>
+        <g class="wave"><rect x="7" y="3" width="1" height="2"/><rect x="8" y="1" width="1" height="6"/></g>
+        <g class="slash"><rect x="7" y="2" width="1" height="1"/><rect x="9" y="2" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/></g>
+      </svg>
+    </button>
+    <button id="btnPause" class="ico" type="button" aria-label="Szünet">
+      <svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1" y="0" width="3" height="10"/><rect x="6" y="0" width="3" height="10"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="overlay" hidden>
+  <section class="panel" id="p-title" hidden>
+    <h1>PIXEL UGRÓ</h1>
+    <p>Ugorj az ellenségekre, gyűjts érméket, és érj el a zászlóhoz!</p>
+    <button class="btn primary" id="btnStart" type="button">Új játék</button>
+    <button class="btn alt" id="btnContinue" type="button" hidden>Folytatás</button>
+    <button class="btn alt needs-touch" id="btnSettings1" type="button">Beállítások</button>
+    <p class="best" id="bestLine"></p>
+    <p class="hint kbd">Nyilak vagy A/D: mozgás<br>Szóköz vagy W: ugrás<br>P: szünet</p>
+    <p class="hint touchonly">Ugorj még egyszer a levegőben, hogy messzebb juss!</p>
+  </section>
+
+  <section class="panel" id="p-pause" hidden>
+    <h2>Szünet</h2>
+    <button class="btn primary" id="btnResume" type="button">Folytatás</button>
+    <button class="btn alt needs-touch" id="btnSettings2" type="button">Beállítások</button>
+    <button class="btn alt" id="btnRestart" type="button">Újrakezdés</button>
+  </section>
+
+  <section class="panel" id="p-settings" hidden>
+    <h2>Beállítások</h2>
+    <div class="row"><span>Nehézség</span>
+      <div class="seg" data-setting="difficulty">
+        <button type="button" data-v="normal">Normál</button><button type="button" data-v="easy">Könnyű</button>
+      </div></div>
+    <div class="row"><span>Kezelés</span>
+      <div class="seg" data-setting="hand">
+        <button type="button" data-v="right">Jobbkezes</button><button type="button" data-v="left">Balkezes</button>
+      </div></div>
+    <div class="row"><span>Gombméret</span>
+      <div class="seg" data-setting="tsize">
+        <button type="button" data-v="s">Kicsi</button><button type="button" data-v="m">Közepes</button><button type="button" data-v="l">Nagy</button>
+      </div></div>
+    <div class="row"><span>Zene</span>
+      <div class="seg" data-setting="music">
+        <button type="button" data-v="on">Be</button><button type="button" data-v="off">Ki</button>
+      </div></div>
+    <div class="row"><span>Rezgés</span>
+      <div class="seg" data-setting="haptic">
+        <button type="button" data-v="on">Be</button><button type="button" data-v="off">Ki</button>
+      </div></div>
+    <p class="hint" id="hapticHint" hidden>Ezen az eszközön a böngésző nem engedi a rezgést.</p>
+    <button class="btn primary" id="btnSettingsBack" type="button">Kész</button>
+  </section>
+
+  <section class="panel" id="p-clear" hidden>
+    <h2>Pálya kész!</h2>
+    <div class="stat"><span>Érmék</span><b id="clCoins"></b></div>
+    <div class="stat"><span>Bónusz</span><b id="clBonus"></b></div>
+    <div class="stat"><span>Pontszám</span><b id="clScore"></b></div>
+    <div class="stat"><span>Idő</span><b id="clTime"></b></div>
+    <p class="best" id="clBestTime"></p>
+    <button class="btn primary" id="btnNext" type="button">Következő pálya</button>
+    <button class="btn alt" id="btnShareClear" type="button">Megosztás</button>
+  </section>
+
+  <section class="panel" id="p-over" hidden>
+    <h2>Vége a játéknak</h2>
+    <div class="stat"><span>Pontszám</span><b id="goScore"></b></div>
+    <p class="best" id="goNew" hidden>Új rekord!</p>
+    <button class="btn primary" id="btnRetry" type="button">Újra</button>
+    <button class="btn alt" id="btnShareOver" type="button">Megosztás</button>
+  </section>
+
+  <section class="panel" id="p-win" hidden>
+    <h2>Végigvitted!</h2>
+    <div class="stat"><span>Összpontszám</span><b id="wnScore"></b></div>
+    <p class="best" id="wnNew" hidden>Új rekord!</p>
+    <div class="stat"><span>Idő</span><b id="wnTime"></b></div>
+    <p class="best" id="wnBestTime"></p>
+    <button class="btn primary" id="btnAgain" type="button">Újra a kezdetről</button>
+    <button class="btn alt" id="btnShareWin" type="button">Megosztás</button>
+  </section>
+</div>
+
+<div id="rotate" role="alertdialog" aria-label="Fordítsd el a telefont">
+  <div>
+    <div class="rot-phone" aria-hidden="true"></div>
+    <p>Fekvő tájolásban élvezhető igazán — fordítsd el a telefont!</p>
+    <button class="btn alt" id="btnRotateOk" type="button">Folytatás így is</button>
+  </div>
+</div>
+
+<div id="touch" aria-hidden="true">
+  <div class="pad">
+    <button class="tbtn" data-k="left" type="button" tabindex="-1"><i class="l"></i></button>
+    <button class="tbtn" data-k="right" type="button" tabindex="-1"><i class="r"></i></button>
+  </div>
+  <button class="tbtn jump" data-k="jump" type="button" tabindex="-1"><i class="u"></i></button>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   PIXEL UGRÓ – 2D platformer
+   Belső felbontás: 320x176 (20x11 csempe, egy csempe 16x16 pixel)
+   A pályákat lentebb, a "PÁLYÁK" részben lehet szerkeszteni.
+   ===================================================================== */
+
+const T = 16, VW = 320, VH = 176, ROWS = 11;
+let VH_dyn = VH;
+/* Játékérzet – ezeket az értékeket érdemes hangolni (px / képkocka, 60 fps) */
+const SPRING_VY = -10.5;
+const PHYS = {
+  grav: 0.3,          // alap gravitáció
+  fallMult: 1.12,     // esésnél kicsit erősebb: határozottabb landolás
+  apexMult: 0.65,     // az ugrás csúcsán kis "lebegés", ha nyomva tartod az ugrást
+  apexBand: 1.1,      // ennyi függőleges sebesség alatt számít csúcsnak
+  cutMult: 2.4,       // ha elengeded az ugrást, ennyiszeres gravitáció (rövid ugrás)
+  maxFall: 6.5,
+  maxSpeed: 1.7,
+  accelGround: 0.34, accelAir: 0.24,
+  fricGround: 0.32, fricAir: 0.06,
+  turnBoost: 1.6,     // irányváltásnál gyorsabb fékezés (nincs csúszás)
+  jump: -6.2, djump: -5.4,
+  coyote: 7,          // ennyi képkockáig még ugorhatsz a perem után
+  buffer: 8           // ennyi képkockával előbb is lenyomhatod az ugrást landolás előtt
+};
+
+const $ = id => document.getElementById(id);
+const canvas = $('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const triWave = (t, period) => { const p = (((t % period) + period) % period) / period; return p < 0.5 ? p * 2 : 2 - p * 2; };
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* nem baj */ } }
+};
+
+/* ---------- Beállítások és rezgés ---------- */
+const SET_OPTS = { hand: ['right', 'left'], tsize: ['s', 'm', 'l'], haptic: ['on', 'off'], music: ['on', 'off'], difficulty: ['normal', 'easy'] };
+const SET = { hand: 'right', tsize: 'm', haptic: 'on', music: 'on', difficulty: 'normal' };
+try {
+  const saved = JSON.parse(store.get('pixelUgro.settings', '{}')) || {};
+  for (const k in SET_OPTS) if (SET_OPTS[k].includes(saved[k])) SET[k] = saved[k];
+} catch (e) { /* alapértékek maradnak */ }
+
+function applySettings() {
+  const r = document.documentElement;
+  r.dataset.hand = SET.hand;
+  r.dataset.tsize = SET.tsize;
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === SET[seg.dataset.setting])));
+  });
+}
+function buzz(pattern) {
+  if (SET.haptic !== 'on' || typeof navigator === 'undefined' || !('vibrate' in navigator)) return;
+  if (!(matchMedia('(pointer:coarse)').matches || document.documentElement.classList.contains('has-touch'))) return;
+  try { navigator.vibrate(pattern); } catch (e) { /* nem baj */ }
+}
+
+/* ---------- Témák (színek pályánként) ---------- */
+const THEMES = {
+  dawn: {
+    sky: ['#5b4b9a', '#8a5fa3', '#b8709f', '#e88a8a', '#f7ac7e', '#ffd08a'],
+    sun: '#fff1b8', glow: '#ffd08a', sunX: 236, sunY: 58, sunR: 16, stars: false,
+    hillFar: '#8a5a9e', hillNear: '#5f4489',
+    grass: '#6fd08c', grassD: '#3e9a6e', dirt: '#8b5a44', dirtD: '#6c4335',
+    brick: '#e0954f', brickL: '#f2b26f', mortar: '#8c4f2a',
+    enemy: '#d8467f', enemyD: '#9c2d5c'
+  },
+  dusk: {
+    sky: ['#2b1f5c', '#4b2a78', '#7a3a86', '#b24a80', '#e0607a', '#f58f6e'],
+    sun: '#ffb27a', glow: '#f58f6e', sunX: 92, sunY: 96, sunR: 20, stars: false,
+    hillFar: '#66327a', hillNear: '#421f5e',
+    grass: '#d8a63a', grassD: '#a8742a', dirt: '#7a4a3a', dirtD: '#5a3428',
+    brick: '#9a68dc', brickL: '#b98cf0', mortar: '#5a3a90',
+    enemy: '#3fc7b0', enemyD: '#248c7c'
+  },
+  night: {
+    sky: ['#0d0b2a', '#151242', '#1f1a5c', '#2a2378', '#37308c', '#4a44a0'],
+    sun: '#fff1d6', glow: null, sunX: 250, sunY: 44, sunR: 12, stars: true,
+    hillFar: '#2c2870', hillNear: '#1b1848',
+    grass: '#4fd1c5', grassD: '#2b8a9a', dirt: '#3b3a6b', dirtD: '#2a2950',
+    brick: '#e5647a', brickL: '#ff8a9a', mortar: '#8f2e4a',
+    enemy: '#9be564', enemyD: '#5fa83a'
+  },
+  cave: {
+    sky: ['#0e1a12', '#16241a', '#203323', '#2c4530', '#3a5a3c', '#4d7048'],
+    sun: '#dfffb0', glow: '#8fd66a', sunX: 44, sunY: 42, sunR: 10, stars: false,
+    hillFar: '#1d2f22', hillNear: '#13221a',
+    grass: '#7a5a3a', grassD: '#523a26', dirt: '#332a22', dirtD: '#241d18',
+    brick: '#5a6a52', brickL: '#7a8a70', mortar: '#2e3a2a',
+    enemy: '#caa23a', enemyD: '#8a6e22'
+  },
+  ice: {
+    sky: ['#0b1b3a', '#132a52', '#1d3f6e', '#2c5a8c', '#4a86ad', '#9fd0e0'],
+    sun: '#fffced', glow: '#d7f3ff', sunX: 200, sunY: 46, sunR: 18, stars: false,
+    hillFar: '#274a72', hillNear: '#1a3355',
+    grass: '#d8f3ff', grassD: '#a9d8ef', dirt: '#5c7a94', dirtD: '#43607a',
+    brick: '#6fb8d9', brickL: '#a7dcef', mortar: '#2f5570',
+    enemy: '#ff8f5e', enemyD: '#c05a30'
+  }
+};
+
+/* ---------- Pixel sprite-ok (szöveges rajz -> canvas) ---------- */
+function spr(rows, pal, flip) {
+  const h = rows.length, w = rows[0].length;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const ch = rows[y][x];
+      if (ch !== '.' && pal[ch]) { g.fillStyle = pal[ch]; g.fillRect(flip ? w - 1 - x : x, y, 1, 1); }
+    }
+  }
+  return c;
+}
+const both = (rows, pal) => ({ r: spr(rows, pal, false), l: spr(rows, pal, true) });
+
+const PAL_PLAYER = { h: '#4a2c2a', r: '#ff5470', s: '#f4b98a', k: '#1c1438', w: '#fff1d6', b: '#3a6fe0', e: '#ff9a3d', o: '#ffffff', c: '#ff8c8c' };
+const HEAD = [
+  '..hhhhhhhh..',
+  'hhhhhhhhhhh.',
+  'hhrrrrrrrrhh',
+  'hrrrrrrrrrrh',
+  'sssssssssss.',
+  'sokssscsoks.',
+  'ssssssssss..',
+  '.ssssssssss.',
+  '..ssssssss..'
+];
+const BODY = [
+  '.wwwwwwwwww.',
+  'wwwwwwwwwwww',
+  'wwwwwwwwwwww',
+  'wwwwwwwwwwww',
+  '.wwwwwwwwww.'
+];
+const BODYJ = [
+  's.wwwwwwww.s',
+  'wwwwwwwwwwww',
+  'wwwwwwwwwwww',
+  'wwwwwwwwwwww',
+  '.wwwwwwwwww.'
+];
+const LEGS = {
+  idle: ['..bbb..bbb..', '..bbb..bbb..', '..bbb..bbb..', '..eee..eee..'],
+  run1: ['.bbbb..bbb..', '.bbb..bbbb..', '..ee..bbb...', '..ee...eee..'],
+  run2: ['..bbb..bbbb.', '..bbb..bbb..', '...bbb..ee..', '..eee...ee..'],
+  jump: ['.bbb....bbb.', '.bb......bb.', 'ee........ee', '............']
+};
+const PF = {
+  idle: both(HEAD.concat(BODY, LEGS.idle), PAL_PLAYER),
+  run1: both(HEAD.concat(BODY, LEGS.run1), PAL_PLAYER),
+  run2: both(HEAD.concat(BODY, LEGS.run2), PAL_PLAYER),
+  jump: both(HEAD.concat(BODYJ, LEGS.jump), PAL_PLAYER)
+};
+
+const EN_A = [
+  '..mmmmmmmm..', '.mmmmmmmmmm.', 'mmmmmmmmmmmm', 'mmwwmmmmwwmm', 'mmwkmmmmwkmm',
+  'mmmmmmmmmmmm', 'mmmmmmmmmmmm', '.mmmmmmmmmm.', '..nn....nn..', '..nn....nn..'
+];
+const EN_B = [
+  '..mmmmmmmm..', '.mmmmmmmmmm.', 'mmmmmmmmmmmm', 'mmwwmmmmwwmm', 'mmwkmmmmwkmm',
+  'mmmmmmmmmmmm', '.mmmmmmmmmm.', '..mmmmmmmm..', '...nn..nn...', '...nn..nn...'
+];
+function makeEnemySprites(th) {
+  const pal = { m: th.enemy, n: th.enemyD, w: '#fff1d6', k: '#1c1438' };
+  const palFly = { m: '#e3e6f5', n: '#aab0d9', w: '#2b2750', k: '#12102a' };
+  const palArm = { m: '#9aa5b8', n: '#5b6478', w: '#fff1d6', k: '#1c1438' };
+  return {
+    a: both(EN_A, pal), b: both(EN_B, pal),
+    flyA: both(EN_A, palFly), flyB: both(EN_B, palFly),
+    armA: both(EN_A, palArm), armB: both(EN_B, palArm)
+  };
+}
+
+const PAL_COIN = { o: '#d58a1f', y: '#ffd45e', l: '#fff3b0' };
+const PAL_GEM = { o: '#8a1f3a', y: '#ff4d6d', l: '#ffb0c0' };
+const COIN_SHAPES = [
+  ['..oooo..', '.oyyyyo.', 'oyyllyyo', 'oyylyyyo', 'oyyyyyyo', 'oyyyyyyo', '.oyyyyo.', '..oooo..'],
+  ['..oooo..', '..oyyo..', '.oyllyo.', '.oyyyyo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..', '..oooo..'],
+  ['...oo...', '..oyyo..', '..oyyo..', '..oyyo..', '..oyyo..', '..oyyo..', '..oyyo..', '...oo...']
+];
+const COIN_F = COIN_SHAPES.map(r => spr(r, PAL_COIN, false));
+const GEM_F = COIN_SHAPES.map(r => spr(r, PAL_GEM, false));
+const COIN_SEQ = [0, 1, 2, 1];
+
+const HEART = ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'];
+const HEART_ON = spr(HEART, { h: '#ff4d6d' }, false);
+const HEART_OFF = spr(HEART, { h: '#4a3a6a' }, false);
+
+/* ---------- Háttér és csempék (témánként előre legyártva) ---------- */
+function circle(g, cx, cy, r, col) {
+  g.fillStyle = col;
+  for (let y = -r; y < r; y += 2) {
+    const yy = y + 1;
+    const w = Math.round(Math.sqrt(Math.max(0, r * r - yy * yy)) / 2) * 2;
+    g.fillRect(cx - w, cy + y, w * 2, 2);
+  }
+}
+
+function makeBackground(th) {
+  const c = document.createElement('canvas');
+  c.width = VW; c.height = VH;
+  const g = c.getContext('2d');
+  const n = th.sky.length, bh = VH / n;
+  for (let i = 0; i < n; i++) { g.fillStyle = th.sky[i]; g.fillRect(0, Math.floor(i * bh), VW, Math.ceil(bh) + 1); }
+  for (let b = 1; b < n; b++) {
+    const by = Math.round(b * bh);
+    for (let x = 0; x < VW; x += 4) {
+      g.fillStyle = th.sky[b]; g.fillRect(x, by - 2, 2, 2);
+      g.fillStyle = th.sky[b - 1]; g.fillRect(x + 2, by, 2, 2);
+    }
+  }
+  if (th.stars) {
+    let s = 12345;
+    const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    for (let i = 0; i < 46; i++) {
+      const x = Math.floor(rnd() * VW / 2) * 2, y = Math.floor(rnd() * 90 / 2) * 2;
+      g.fillStyle = rnd() < 0.3 ? '#9fa8ff' : '#fff1d6';
+      g.fillRect(x, y, rnd() < 0.25 ? 2 : 1, rnd() < 0.25 ? 2 : 1);
+    }
+  }
+  if (th.glow) { g.globalAlpha = 0.35; circle(g, th.sunX, th.sunY, th.sunR + 6, th.glow); g.globalAlpha = 1; }
+  circle(g, th.sunX, th.sunY, th.sunR, th.sun);
+  if (th.stars) { // holdsarló
+    const yi = Math.min(n - 1, Math.floor((th.sunY - 3) / bh));
+    circle(g, th.sunX + 5, th.sunY - 3, th.sunR - 1, th.sky[yi]);
+  }
+  return c;
+}
+
+function makeTiles(th) {
+  const mk = fn => { const c = document.createElement('canvas'); c.width = T; c.height = T; fn(c.getContext('2d')); return c; };
+  const R = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  const dirt = g => {
+    R(g, th.dirt, 0, 0, 16, 16);
+    [[2, 5], [10, 3], [6, 9], [13, 11], [3, 13], [9, 14]].forEach(([x, y]) => R(g, th.dirtD, x, y, 2, 2));
+  };
+  return {
+    fill: mk(dirt),
+    top: mk(g => {
+      dirt(g);
+      R(g, th.grass, 0, 0, 16, 4);
+      R(g, th.grassD, 0, 4, 16, 1);
+      [2, 7, 12].forEach(x => R(g, th.grassD, x, 5, 2, 1));
+    }),
+    brick: mk(g => {
+      R(g, th.brick, 0, 0, 16, 16);
+      R(g, th.brickL, 0, 0, 16, 1); R(g, th.brickL, 0, 8, 16, 1);
+      R(g, th.mortar, 0, 7, 16, 1); R(g, th.mortar, 0, 15, 16, 1);
+      R(g, th.mortar, 7, 0, 1, 7); R(g, th.mortar, 3, 8, 1, 7); R(g, th.mortar, 11, 8, 1, 7);
+    }),
+    spike: mk(g => {
+      for (let k = 0; k < 4; k++) {
+        const x = k * 4;
+        R(g, '#f1f2ff', x + 1, 7, 2, 3);
+        R(g, '#f1f2ff', x, 10, 4, 6);
+        R(g, '#8f93bd', x + 2, 10, 2, 6);
+        R(g, '#8f93bd', x + 2, 7, 1, 3);
+      }
+      R(g, '#5b5f8a', 0, 14, 16, 2);
+    }),
+    spring: mk(g => {
+      dirt(g);
+      R(g, th.grass, 0, 0, 16, 4); R(g, th.grassD, 0, 4, 16, 1);
+      R(g, th.mortar, 3, 3, 10, 5);
+      R(g, th.brickL, 4, 4, 8, 1); R(g, th.brickL, 4, 6, 8, 1);
+      R(g, '#fff1d6', 3, 1, 10, 2);
+    })
+  };
+}
+
+/* =====================================================================
+   PÁLYÁK
+   Egy pálya építő-parancsokból áll. A koordináták csempében vannak:
+   x = oszlop (balról), y = sor (fentről, 0..10). A talaj teteje alapból a 9. sor.
+     ground(x0, x1, top)   talaj az x0..x1 oszlopokon (top = első sor, alap 9)
+     wall(x, y0, y1)       függőleges fal
+     block(x, y, n)        téglablokk n darab, vízszintesen
+     spikes(x, y, n)       tüskék
+     coin(x, y, n)         n érme egymás mellett
+     enemy(x, y)           ellenség (y = a sor, ahol áll)
+     check(x, y)           ellenőrzőpont (itt éled újra)
+     goalAt(x, y)          célzászló
+   ===================================================================== */
+function newLevel(name, w, themeKey) {
+  const g = [];
+  for (let y = 0; y < ROWS; y++) g.push(new Array(w).fill('.'));
+  const L = { name, w, g, theme: THEMES[themeKey], themeKey, coinList: [], enemyList: [], checkList: [], platList: [], start: { x: 2, y: 8 }, goal: { x: w - 4, y: 8 } };
+  const put = (x, y, c) => { if (x >= 0 && x < w && y >= 0 && y < ROWS) g[y][x] = c; };
+  L.ground = (x0, x1, top = 9) => { for (let x = x0; x <= x1; x++) for (let y = top; y < ROWS; y++) put(x, y, '#'); return L; };
+  L.wall = (x, y0, y1) => { for (let y = y0; y <= y1; y++) put(x, y, '#'); return L; };
+  L.block = (x, y, n = 1) => { for (let i = 0; i < n; i++) put(x + i, y, 'B'); return L; };
+  L.spikes = (x, y, n = 1) => { for (let i = 0; i < n; i++) put(x + i, y, '^'); return L; };
+  L.spring = (x, y, n = 1) => { for (let i = 0; i < n; i++) put(x + i, y, 'S'); return L; };
+  L.coin = (x, y, n = 1) => { for (let i = 0; i < n; i++) L.coinList.push({ x: x + i, y, val: 10, big: false }); return L; };
+  L.gem = (x, y, n = 1) => { for (let i = 0; i < n; i++) L.coinList.push({ x: x + i, y, val: 50, big: true }); return L; };
+  L.enemy = (x, y) => { L.enemyList.push({ x, y, kind: 'walk' }); return L; };
+  L.flyEnemy = (x, y, range = 3) => { L.enemyList.push({ x, y, kind: 'fly', range }); return L; };
+  L.armored = (x, y) => { L.enemyList.push({ x, y, kind: 'armored' }); return L; };
+  L.shooter = (x, y, dir = -1) => { L.enemyList.push({ x, y, kind: 'shoot', dir }); return L; };
+  L.check = (x, y) => { L.checkList.push({ x, y }); return L; };
+  L.goalAt = (x, y) => { L.goal = { x, y }; return L; };
+  // Dinamikus szerkezetek: mozgó / egyirányú / eltűnő platformok (nem a rácsban élnek, külön ütköznek)
+  L.oneway = (x0, x1, y) => { L.platList.push({ kind: 'oneway', x: x0 * T, y: y * T, w: (x1 - x0 + 1) * T, h: T }); return L; };
+  L.blink = (x0, x1, y, period = 200, onLen = 130, phase = 0) => { L.platList.push({ kind: 'blink', x: x0 * T, y: y * T, w: (x1 - x0 + 1) * T, h: T, period, onLen, phase }); return L; };
+  L.moveplat = (x0, x1, y, period = 140, phase = 0) => { L.platList.push({ kind: 'move', axis: 'x', x0: x0 * T, x1: x1 * T, x: x0 * T, y: y * T, w: 2 * T, h: T, period, phase }); return L; };
+  L.moveplatV = (x, y0, y1, period = 140, phase = 0) => { L.platList.push({ kind: 'move', axis: 'y', y0: y0 * T, y1: y1 * T, x: x * T, y: y0 * T, w: 2 * T, h: T, period, phase }); return L; };
+  return L;
+}
+
+const LEVELS = [
+  // 1. pálya – bemelegítés
+  () => newLevel('Hajnal', 84, 'dawn')
+    .ground(0, 17).coin(6, 7, 3).enemy(12, 8)
+    .coin(18, 6, 3)
+    .ground(21, 40).block(25, 6, 3).coin(25, 5, 3).enemy(30, 8).check(33, 8)
+    .spikes(36, 8, 2).coin(35, 6, 4)
+    .block(42, 7, 2).coin(42, 5, 2)
+    .ground(45, 64)
+    .ground(48, 49, 8).ground(50, 51, 7).ground(52, 53, 6).ground(54, 55, 7).ground(56, 57, 8)
+    .coin(50, 5, 2).coin(52, 4, 2).enemy(60, 8)
+    .coin(65, 6, 3)
+    .ground(68, 83).check(70, 8).enemy(73, 8).block(76, 6, 3).coin(76, 5, 3).enemy(78, 8)
+    .goalAt(81, 8),
+
+  // 2. pálya – dupla ugrás
+  () => newLevel('Alkony', 100, 'dusk')
+    .ground(0, 14).coin(5, 7, 3).enemy(10, 8)
+    .coin(15, 7).coin(16, 6).coin(17, 5).coin(18, 6).coin(19, 7)
+    .ground(20, 50).check(22, 8).enemy(25, 8).enemy(29, 8)
+    .spikes(32, 8, 2).coin(31, 6, 4)
+    .wall(40, 6, 8)
+    .block(44, 6, 3).coin(44, 5, 3).enemy(47, 8)
+    .coin(51, 6, 3)
+    .ground(54, 70).check(55, 8).block(58, 4, 3).coin(58, 3, 3).enemy(62, 8).enemy(66, 8)
+    .block(73, 7, 2).block(77, 6, 2).coin(73, 5, 2).coin(77, 4, 2)
+    .ground(81, 99).check(83, 8).enemy(87, 8).block(89, 5, 2).coin(89, 4, 2).enemy(92, 8)
+    .goalAt(96, 8),
+
+  // 3. pálya – éjszakai kihívás
+  () => newLevel('Éjszaka', 120, 'night')
+    .ground(0, 12).coin(4, 7, 3).enemy(9, 8)
+    .block(14, 7, 1).coin(13, 5, 4)
+    .ground(17, 30).check(18, 8).spikes(20, 8, 2).coin(19, 5, 4).enemy(25, 8).enemy(28, 8)
+    .coin(31, 6, 3)
+    .ground(34, 52).wall(41, 6, 8).spikes(42, 8, 2).coin(41, 4).coin(43, 5, 2)
+    .check(45, 8).enemy(47, 8).enemy(50, 8)
+    .block(54, 7, 1).block(57, 6, 1).coin(54, 5).coin(57, 4)
+    .ground(59, 72).coin(60, 7, 5).enemy(64, 8).spikes(66, 8, 1).enemy(69, 8).block(62, 5, 2).coin(62, 4, 2)
+    .coin(73, 6, 4)
+    .ground(77, 79).ground(80, 81, 8).ground(82, 83, 7).ground(84, 92, 6).coin(84, 4, 5).enemy(88, 5)
+    .ground(93, 119).check(95, 8).enemy(99, 8).spikes(101, 8, 1).enemy(104, 8)
+    .block(105, 5, 3).coin(105, 4, 3).spikes(108, 8, 2).coin(107, 6, 4).enemy(112, 8)
+    .goalAt(116, 8),
+
+  // 4. pálya – Barlang: páncélos és lövöldöző ellenség, rejtett rugó-útvonal mozgó és eltűnő platformmal
+  () => newLevel('Barlang', 92, 'cave')
+    .ground(0, 20).coin(5, 7, 3).enemy(10, 8)
+    .check(14, 8)
+    .spring(17, 9)                                            // bónusz: felfelé indít egy rejtett polcra
+    .oneway(15, 22, 6).gem(16, 4, 2)
+    .moveplat(23, 29, 6, 130).oneway(30, 34, 6).gem(31, 4, 3)
+    .blink(35, 38, 6, 200, 130).oneway(39, 44, 6).gem(40, 4, 4)
+    .flyEnemy(37, 5, 3)
+    .ground(20, 45)
+    .armored(28, 8)
+    .check(31, 8)
+    .spikes(34, 8, 2).coin(33, 6, 4)
+    .shooter(40, 8, -1)
+    .ground(48, 68)
+    .block(52, 7, 2).coin(52, 5, 2)
+    .enemy(58, 8)
+    .check(60, 8)
+    .ground(71, 91)
+    .enemy(75, 8)
+    .block(80, 6, 3).coin(80, 5, 3)
+    .check(83, 8)
+    .enemy(87, 8)
+    .goalAt(89, 8),
+
+  // 5. pálya – Jégvilág: repülő ellenség a fő úton, rejtett liftes útvonal
+  () => newLevel('Jégvilág', 100, 'ice')
+    .ground(0, 15).coin(4, 7, 3)
+    .check(8, 8)
+    .ground(19, 40)
+    .shooter(24, 8, -1)
+    .spikes(28, 8, 2).coin(27, 6, 4)
+    .flyEnemy(33, 7, 3)
+    .check(36, 8)
+    .ground(43, 64)
+    .armored(48, 8)
+    .block(52, 7, 2).coin(52, 5, 2)
+    .spring(58, 9)                                            // bónusz: felfelé indít egy rejtett liftes szárnyba
+    .oneway(56, 63, 6).gem(57, 4, 3)
+    .moveplatV(63, 3, 8, 150).oneway(61, 66, 3).gem(62, 2, 2)
+    .blink(64, 70, 6, 210, 140).oneway(71, 76, 6).gem(72, 4, 4)
+    .ground(65, 86)
+    .enemy(70, 8)
+    .check(74, 8)
+    .shooter(78, 8, 1)
+    .ground(87, 99)
+    .block(90, 6, 3).coin(90, 5, 3)
+    .enemy(94, 8)
+    .check(96, 8)
+    .goalAt(97, 8)
+];
+
+/* ---------- Hang ---------- */
+let AC = null, muted = store.get('pixelUgro.muted', '0') === '1';
+function audio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  if (AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(f0, f1, dur, type = 'square', vol = 0.05, delay = 0) {
+  if (muted) return;
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+const sfx = {
+  jump: () => { tone(300, 620, 0.14); buzz(10); },
+  djump: () => { tone(450, 920, 0.16); buzz(12); },
+  coin: () => { tone(988, 988, 0.07); tone(1319, 1319, 0.14, 'square', 0.05, 0.07); },
+  stomp: () => { tone(240, 90, 0.16, 'square', 0.07); buzz(18); },
+  hurt: () => { tone(260, 70, 0.3, 'sawtooth', 0.06); buzz(60); },
+  die: () => { tone(420, 90, 0.5, 'sawtooth', 0.06); buzz(140); },
+  check: () => { tone(660, 660, 0.08); tone(880, 880, 0.14, 'square', 0.05, 0.08); buzz(20); },
+  spring: () => { tone(220, 780, 0.16, 'sine', 0.07); tone(780, 1200, 0.1, 'sine', 0.05, 0.1); buzz(25); },
+  shoot: () => tone(520, 260, 0.08, 'square', 0.04),
+  win: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, f, 0.14, 'square', 0.05, i * 0.12)); buzz([30, 40, 30, 40, 60]); },
+  over: () => [392, 330, 262, 196].forEach((f, i) => tone(f, f, 0.22, 'triangle', 0.07, i * 0.2))
+};
+
+
+/* ---------- Zene (kis chiptune szekvenszer, témánként más hangnem) ---------- */
+const MUSIC = {
+  dawn:  { root: 220.0, bpm: 130, bass: [0, -1, 7, -1, 5, -1, 3, -1, 0, -1, 7, -1, 8, -1, 7, -1],
+           lead: [12, -1, 15, -1, 12, -1, 10, -1, 12, -1, 15, 17, 19, -1, 17, -1] },
+  dusk:  { root: 196.0, bpm: 116, bass: [0, -1, 3, -1, 7, -1, 5, -1, 0, -1, 3, -1, 10, -1, 7, -1],
+           lead: [7, -1, 10, -1, 12, -1, 10, -1, 7, -1, 10, 12, 15, -1, 12, -1] },
+  night: { root: 164.8, bpm: 100, bass: [0, -1, 5, -1, 7, -1, 3, -1, 0, -1, 5, -1, 8, -1, 7, -1],
+           lead: [3, -1, 7, -1, 10, -1, 7, -1, 3, -1, 7, 10, 12, -1, 10, -1] },
+  cave:  { root: 146.8, bpm: 92,  bass: [0, -1, -1, 5, -1, -1, 3, -1, 0, -1, -1, 5, -1, 7, -1, -1],
+           lead: [-1, 12, -1, -1, 15, -1, 12, -1, -1, 12, -1, -1, 17, -1, 15, -1] },
+  ice:   { root: 174.6, bpm: 122, bass: [0, -1, 7, -1, 5, -1, 9, -1, 0, -1, 7, -1, 5, -1, 7, -1],
+           lead: [12, 15, -1, 12, -1, 16, -1, 15, 12, 15, -1, 12, -1, 19, -1, 15] }
+};
+const MUS = { gain: null, key: null, step: 0, next: 0 };
+function musGain() {
+  const a = audio(); if (!a) return null;
+  if (!MUS.gain) { MUS.gain = a.createGain(); MUS.gain.gain.value = 0.22; MUS.gain.connect(a.destination); }
+  return MUS.gain;
+}
+function musNote(freq, dur, type, vol, t) {
+  const a = audio(); const g = musGain(); if (!a || !g) return;
+  const o = a.createOscillator(), amp = a.createGain();
+  o.type = type; o.frequency.value = freq;
+  amp.gain.setValueAtTime(0, t);
+  amp.gain.linearRampToValueAtTime(vol, t + 0.008);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(amp); amp.connect(g);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function setMusicTheme(key) { if (MUS.key !== key) { MUS.key = key; MUS.step = 0; MUS.next = 0; } }
+function musicTick() {
+  if (muted || SET.music !== 'on') return;
+  const a = audio(); if (!a || !MUS.key) return;
+  if (a.state !== 'running') { MUS.next = 0; return; }   // ne ütemezzünk befagyott órához
+  musGain();
+  const p = MUSIC[MUS.key], stepDur = 60 / p.bpm / 2;
+  if (MUS.next < a.currentTime) MUS.next = a.currentTime + 0.06;
+  while (MUS.next < a.currentTime + 0.18) {
+    const i = MUS.step % 16;
+    const b = p.bass[i]; if (b >= 0) musNote(p.root / 2 * Math.pow(2, b / 12), stepDur * 1.4, 'triangle', 0.5, MUS.next);
+    const l = p.lead[i]; if (l >= 0) musNote(p.root * Math.pow(2, l / 12), stepDur * 0.85, 'square', 0.22, MUS.next);
+    MUS.next += stepDur; MUS.step++;
+  }
+}
+
+/* ---------- Játékállapot ---------- */
+const PROGRESS_KEY = 'pixelUgro.progress';
+let progress = clamp(parseInt(store.get(PROGRESS_KEY, '0'), 10) || 0, 0, LEVELS.length - 1);
+function saveProgress(i) { if (i > progress) { progress = Math.min(i, LEVELS.length - 1); store.set(PROGRESS_KEY, String(progress)); } }
+function maxLives() { return SET.difficulty === 'easy' ? 5 : 3; }
+
+function fmtTime(sec) {
+  sec = Math.max(0, sec);
+  const m = Math.floor(sec / 60), s2 = sec - m * 60;
+  return String(m).padStart(2, '0') + ':' + s2.toFixed(2).padStart(5, '0');
+}
+function bestTime(key) { const v = store.get(key, ''); return v ? parseFloat(v) : null; }
+function saveBestTime(key, sec) {
+  const cur = bestTime(key);
+  if (cur === null || sec < cur) { store.set(key, sec.toFixed(2)); return { best: sec, isNew: true }; }
+  return { best: cur, isNew: false };
+}
+
+const G = {
+  state: 'title', levelIndex: 0, level: null, t: 0,
+  lives: 3, score: 0, levelCoins: 0, totalCoins: 0, bonus: 0,
+  cam: 0, look: 0, banner: 0, hitFlash: 0,
+  shakeMag: 0, shakeDur: 1, shakeT: 0, spawn: { x: 0, y: 0 },
+  playT: 0, levelStart: 0, runStart: 0,
+  player: null, enemies: [], coins: [], checks: [], particles: [], platforms: [], projectiles: [],
+  tiles: null, bg: null, enemySpr: null,
+  best: parseInt(store.get('pixelUgro.best', '0'), 10) || 0
+};
+const input = { left: false, right: false, jump: false, jumpPressed: false };
+const resetInput = () => { input.left = input.right = input.jump = input.jumpPressed = false; };
+
+function newPlayer(spawn) {
+  return { x: spawn.x, y: spawn.y, w: 8, h: 14, vx: 0, vy: 0, onGround: false, coyote: 0, jumps: 1, jumpBuf: 0,
+    facing: 1, anim: 0, inv: 0, stun: 0, dead: false, deadT: 0, final: false, squashT: 0, stretchT: 0, sprung: false, ride: null };
+}
+
+function addShake(mag, dur) {
+  if (mag >= G.shakeMag || G.shakeT <= 0) { G.shakeMag = mag; G.shakeDur = dur; G.shakeT = dur; }
+}
+
+function autoCheckpoints(L, spacing = 14, minGap = 7) {
+  const taken = L.checkList.map(c => c.x);
+  const extra = [];
+  for (let x = 6; x < L.w - 6; x += spacing) {
+    let solidRow = -1;
+    for (let y = 0; y < ROWS; y++) if (L.g[y][x] === '#') { solidRow = y; break; }
+    if (solidRow < 1) continue;
+    const pathRow = solidRow - 1;
+    if (L.g[pathRow][x] === '^') continue;                       // tüske itt
+    if (pathRow > 0 && L.g[pathRow - 1][x] !== '.') continue;     // nincs fejmagasság
+    if ([...taken, ...extra.map(e => e.x)].some(ax => Math.abs(ax - x) < minGap)) continue;
+    if (L.enemyList.some(e => Math.abs(e.x - x) < 3)) continue;   // ne essen pont ellenségre
+    extra.push({ x, y: pathRow });
+  }
+  return extra;
+}
+
+function loadLevel(i) {
+  const L = LEVELS[i]();
+  const th = L.theme;
+  G.level = L; G.levelIndex = i;
+  G.levelStart = G.playT;
+  G.tiles = makeTiles(th); G.bg = makeBackground(th); G.enemySpr = makeEnemySprites(th);
+  setMusicTheme(L.themeKey);
+  G.coins = L.coinList.map(c => ({ x: c.x * T + 4, y: c.y * T + 4, got: false, val: c.val || 10, big: !!c.big }));
+  G.enemies = L.enemyList.map((e, k) => {
+    const kind = e.kind || 'walk';
+    if (kind === 'fly') {
+      const bx = e.x * T + 2;
+      return { kind, x: bx, y: e.y * T + 2, w: 12, h: 10, baseX: bx, range: e.range || 3,
+        period: 140 + (k % 3) * 30, phase: k * 37, vx: 0, alive: true, deadT: 0, anim: k * 7, stunT: 0, hp: 1 };
+    }
+    if (kind === 'shoot') {
+      return { kind, x: e.x * T + 2, y: (e.y + 1) * T - 9, w: 12, h: 9, vx: 0,
+        dir: e.dir || -1, cooldown: 110, cd: 60 + k * 10, alive: true, deadT: 0, anim: k * 7, stunT: 0, hp: 1 };
+    }
+    return { kind, x: e.x * T + 2, y: (e.y + 1) * T - 9, w: 12, h: 9,
+      vx: k % 2 ? -0.35 : 0.35, alive: true, deadT: 0, anim: k * 7, stunT: 0, hp: kind === 'armored' ? 2 : 1 };
+  });
+  G.projectiles = [];
+  G.platforms = L.platList.map(spec => Object.assign({ dx: 0, dy: 0 }, spec));
+  updatePlatforms();
+  const extraChecks = SET.difficulty === 'easy' ? autoCheckpoints(L) : [];
+  G.checks = L.checkList.concat(extraChecks).map(c => ({ x: c.x, y: c.y, on: false }));
+  G.spawn = { x: L.start.x * T + 4, y: (L.start.y + 1) * T - 14 };
+  G.player = newPlayer(G.spawn);
+  G.particles = [];
+  G.levelCoins = 0; G.totalCoins = L.coinList.length;
+  G.banner = 0;
+  snapCam();
+}
+
+function startGame() {
+  audio();
+  G.lives = maxLives(); G.score = 0; G.runStart = G.playT;
+  loadLevel(0);
+  G.banner = 150;
+  G.state = 'play';
+  resetInput();
+  showOverlay(null);
+}
+
+function continueGame() {
+  audio();
+  G.lives = maxLives(); G.score = 0; G.runStart = G.playT;
+  loadLevel(progress);
+  G.banner = 150;
+  G.state = 'play';
+  resetInput();
+  showOverlay(null);
+}
+
+function nextLevel() {
+  G.lives = Math.min(maxLives(), G.lives + 1);
+  loadLevel(G.levelIndex + 1);
+  G.banner = 150;
+  G.state = 'play';
+  resetInput();
+  showOverlay(null);
+}
+
+/* ---------- Csempék, ütközés ---------- */
+function tileAt(tx, ty) {
+  const L = G.level;
+  if (tx < 0 || tx >= L.w) return '#';
+  if (ty < 0 || ty >= ROWS) return '.';
+  return L.g[ty][tx];
+}
+function isSolid(tx, ty) { const c = tileAt(tx, ty); return c === '#' || c === 'B' || c === 'S'; }
+function blocksEnemy(tx, ty) { return isSolid(tx, ty) || tileAt(tx, ty) === '^'; }
+
+function platSolidNow(pl) {
+  if (pl.kind !== 'blink') return true;
+  const ph = (((G.t + pl.phase) % pl.period) + pl.period) % pl.period;
+  return ph < pl.onLen;
+}
+function moveX(e, dx) {
+  e.x += dx;
+  const top = Math.floor(e.y / T), bot = Math.floor((e.y + e.h - 0.01) / T);
+  if (dx > 0) {
+    const c = Math.floor((e.x + e.w - 0.01) / T);
+    for (let ty = top; ty <= bot; ty++) if (isSolid(c, ty)) { e.x = c * T - e.w; e.vx = 0; return; }
+  } else if (dx < 0) {
+    const c = Math.floor(e.x / T);
+    for (let ty = top; ty <= bot; ty++) if (isSolid(c, ty)) { e.x = (c + 1) * T; e.vx = 0; return; }
+  }
+  for (const pl of G.platforms) {
+    if (pl.kind === 'oneway' || !platSolidNow(pl)) continue;
+    if (overlap({ x: e.x, y: e.y, w: e.w, h: e.h }, pl)) {
+      if (dx > 0) e.x = pl.x - e.w; else if (dx < 0) e.x = pl.x + pl.w;
+      e.vx = 0;
+    }
+  }
+}
+function moveY(e, dy) {
+  const preY = e.y;
+  e.y += dy;
+  const l = Math.floor(e.x / T), r = Math.floor((e.x + e.w - 0.01) / T);
+  if (dy > 0) {
+    const c = Math.floor((e.y + e.h - 0.01) / T);
+    for (let tx = l; tx <= r; tx++) {
+      if (isSolid(tx, c)) {
+        if (tileAt(tx, c) === 'S' && e === G.player) { e.y = c * T - e.h; e.vy = SPRING_VY; e.sprung = true; return; }
+        e.y = c * T - e.h; e.vy = 0; e.onGround = true; return;
+      }
+    }
+  } else if (dy < 0) {
+    const c = Math.floor(e.y / T);
+    for (let tx = l; tx <= r; tx++) if (isSolid(tx, c)) { e.y = (c + 1) * T; e.vy = 0; return; }
+  }
+  for (const pl of G.platforms) {
+    if (!platSolidNow(pl)) continue;
+    if (!overlap({ x: e.x, y: e.y, w: e.w, h: e.h }, pl)) continue;
+    if (dy > 0 && preY + e.h <= pl.y + 1) {
+      e.y = pl.y - e.h; e.vy = 0; e.onGround = true;
+      if (e === G.player) e.ride = pl;
+    } else if (dy < 0 && pl.kind !== 'oneway' && preY >= pl.y + pl.h - 1) {
+      e.y = pl.y + pl.h; e.vy = 0;
+    }
+  }
+}
+function hitsSpike(p) {
+  const x0 = Math.floor((p.x + 1) / T), x1 = Math.floor((p.x + p.w - 2) / T);
+  const y0 = Math.floor((p.y + 1) / T), y1 = Math.floor((p.y + p.h - 1) / T);
+  const box = { x: p.x + 1, y: p.y + 1, w: p.w - 2, h: p.h - 2 };
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    if (tileAt(tx, ty) === '^' && overlap(box, { x: tx * T + 2, y: ty * T + 8, w: 12, h: 8 })) return true;
+  }
+  return false;
+}
+
+/* ---------- Részecskék ---------- */
+function burst(x, y, n, cols, spd = 1.5, life = 24) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = (0.4 + Math.random()) * spd;
+    G.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.6, life: life + Math.floor(Math.random() * 8), c: cols[i % cols.length], s: Math.random() < 0.4 ? 2 : 1 });
+  }
+}
+function dust(p, n) { burst(p.x + p.w / 2, p.y + p.h, n, ['#fff1d6', '#c9b8e8'], 0.8, 14); }
+function stepParticles() {
+  for (const q of G.particles) { q.x += q.vx; q.y += q.vy; q.vy += 0.1; q.life--; }
+  G.particles = G.particles.filter(q => q.life > 0);
+}
+
+/* ---------- Játékos ---------- */
+function updatePlayer(p) {
+  if (p.ride) { p.x += p.ride.dx || 0; p.y += p.ride.dy || 0; p.ride = null; }
+  if (input.jumpPressed) { p.jumpBuf = PHYS.buffer; input.jumpPressed = false; }
+  else if (p.jumpBuf > 0) p.jumpBuf--;
+  if (p.inv > 0) p.inv--;
+  if (p.stun > 0) p.stun--;
+
+  const dir = p.stun > 0 ? 0 : (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const accel = p.onGround ? PHYS.accelGround : PHYS.accelAir;
+  const fric = p.onGround ? PHYS.fricGround : PHYS.fricAir;
+  if (dir) {
+    const a = p.vx * dir < 0 ? accel * PHYS.turnBoost : accel;
+    p.vx = clamp(p.vx + dir * a, -PHYS.maxSpeed, PHYS.maxSpeed);
+    p.facing = dir;
+  } else if (Math.abs(p.vx) <= fric) p.vx = 0;
+  else p.vx -= Math.sign(p.vx) * fric;
+
+  if (p.onGround) { p.coyote = PHYS.coyote; p.jumps = 1; } else if (p.coyote > 0) p.coyote--;
+
+  if (p.jumpBuf > 0 && p.stun <= 0) {
+    if (p.coyote > 0) {
+      p.vy = PHYS.jump; p.coyote = 0; p.jumpBuf = 0; p.onGround = false; p.stretchT = 6;
+      sfx.jump(); dust(p, 3);
+    } else if (p.jumps > 0) {
+      p.vy = PHYS.djump; p.jumps--; p.jumpBuf = 0; p.stretchT = 6;
+      sfx.djump(); burst(p.x + p.w / 2, p.y + p.h, 6, ['#fff1d6', '#ffc94a'], 1, 14);
+    }
+  }
+
+  let g = PHYS.grav;
+  if (p.vy < 0 && !input.jump) g *= PHYS.cutMult;                            // rövid ugrás, ha elengeded
+  else if (Math.abs(p.vy) < PHYS.apexBand && input.jump) g *= PHYS.apexMult; // lebegés a csúcson
+  else if (p.vy > 0) g *= PHYS.fallMult;                                     // határozottabb esés
+  p.vy = Math.min(p.vy + g, PHYS.maxFall);
+
+  const wasGround = p.onGround, vyBefore = p.vy;
+  moveX(p, p.vx);
+  p.onGround = false;
+  p.sprung = false;
+  moveY(p, p.vy);
+  if (p.sprung) { sfx.spring(); dust(p, 6); p.squashT = 0; p.stretchT = 12; }
+  else if (p.onGround && !wasGround && vyBefore > 2.5) { dust(p, 4); p.squashT = 8; }
+
+  if (p.onGround && Math.abs(p.vx) > 0.25) p.anim += Math.abs(p.vx) * 0.12;
+  else if (p.onGround) p.anim = 0;
+  if (p.squashT > 0) p.squashT--;
+  if (p.stretchT > 0) p.stretchT--;
+}
+
+function damage(src, fromX) {
+  const p = G.player;
+  if (p.dead) return;
+  if (src === 'enemy' && p.inv > 0) return;
+  G.lives--; G.hitFlash = 16;
+  if (G.lives <= 0) { die(true); return; }
+  if (src === 'enemy') {
+    sfx.hurt(); addShake(4, 14);
+    p.inv = 100; p.stun = 14; p.vy = -3.4;
+    p.vx = (p.x + p.w / 2 < fromX ? -1 : 1) * 2.3;
+  } else die(false);
+}
+function die(final) {
+  const p = G.player;
+  p.dead = true; p.deadT = 0; p.final = final; p.vy = -5; p.vx = 0;
+  sfx.die(); addShake(6, 20);
+  burst(p.x + p.w / 2, p.y + p.h / 2, 10, ['#ff5470', '#fff1d6'], 1.6, 26);
+}
+function updateDead(p) {
+  p.deadT++;
+  p.vy = Math.min(p.vy + PHYS.grav, 8);
+  p.y += p.vy;
+  if (p.deadT >= 60) { if (p.final) gameOver(); else respawn(); }
+}
+function respawn() {
+  G.player = newPlayer(G.spawn);
+  G.player.inv = 90;
+  snapCam();
+}
+
+function pickups(p) {
+  if (p.y > VH + 30) { damage('pit'); return; }
+  if (hitsSpike(p)) { damage('spike'); return; }
+
+  for (const c of G.coins) {
+    if (c.got) continue;
+    if (p.x + p.w + 2 > c.x && p.x - 2 < c.x + 8 && p.y + p.h + 2 > c.y && p.y - 2 < c.y + 8) {
+      c.got = true; G.levelCoins++; G.score += c.val || 10;
+      sfx.coin(); burst(c.x + 4, c.y + 4, 6, c.big ? ['#ff4d6d', '#ffb0c0'] : ['#ffd45e', '#fff3b0'], c.big ? 1.6 : 1.2, c.big ? 24 : 18);
+    }
+  }
+  for (const k of G.checks) {
+    if (!k.on && overlap(p, { x: k.x * T, y: k.y * T, w: T, h: T })) {
+      k.on = true;
+      G.spawn = { x: k.x * T + 4, y: (k.y + 1) * T - 14 };
+      sfx.check(); burst(k.x * T + 8, k.y * T + 6, 8, ['#ffc94a', '#fff1d6'], 1.2, 22);
+    }
+  }
+  const gl = G.level.goal;
+  if (overlap(p, { x: gl.x * T + 2, y: (gl.y - 1) * T, w: 12, h: 32 })) levelComplete();
+}
+
+function spawnProjectile(e) {
+  G.projectiles.push({ x: e.x + (e.dir > 0 ? e.w : -5), y: e.y + e.h / 2 - 2, vx: e.dir * 1.5, life: 220 });
+  sfx.shoot();
+}
+function updatePlatforms() {
+  for (const pl of G.platforms) {
+    if (pl.kind === 'move') {
+      const w = triWave(G.t + pl.phase, pl.period);
+      if (pl.axis === 'x') { const nx = pl.x0 + (pl.x1 - pl.x0) * w; pl.dx = nx - pl.x; pl.x = nx; pl.dy = 0; }
+      else { const ny = pl.y0 + (pl.y1 - pl.y0) * w; pl.dy = ny - pl.y; pl.y = ny; pl.dx = 0; }
+    } else { pl.dx = 0; pl.dy = 0; }
+  }
+}
+function updateProjectiles(p) {
+  for (const pr of G.projectiles) {
+    pr.x += pr.vx; pr.life--;
+    const tx = Math.floor((pr.x + (pr.vx > 0 ? 4 : 0)) / T), ty = Math.floor((pr.y + 2) / T);
+    if (isSolid(tx, ty)) pr.life = 0;
+    if (pr.life > 0 && !p.dead && overlap({ x: pr.x, y: pr.y, w: 5, h: 4 }, p)) { damage('enemy', pr.x); pr.life = 0; }
+  }
+  G.projectiles = G.projectiles.filter(pr => pr.life > 0 && pr.x > G.cam - 20 && pr.x < G.cam + VW + 20);
+}
+function updateEnemies(p) {
+  for (const e of G.enemies) {
+    if (!e.alive) { e.deadT++; continue; }
+    e.anim++;
+    if (e.stunT > 0) e.stunT--;
+
+    if (e.kind === 'fly') {
+      e.t2 = (e.t2 || 0) + 1;
+      const w = triWave(e.t2 + e.phase, e.period);
+      e.x = e.baseX + e.range * T * (w * 2 - 1);
+    } else if (e.kind === 'shoot') {
+      e.cd--;
+      if (e.cd <= 0) { spawnProjectile(e); e.cd = e.cooldown; }
+    } else if (e.stunT <= 0) {
+      const dir = Math.sign(e.vx), nx = e.x + e.vx;
+      const probe = Math.floor((dir > 0 ? nx + e.w : nx - 1) / T);
+      const wallRow = Math.floor((e.y + e.h - 2) / T), footRow = Math.floor((e.y + e.h + 1) / T);
+      if (blocksEnemy(probe, wallRow) || !isSolid(probe, footRow)) e.vx = -e.vx; else e.x = nx;
+    }
+
+    if (!p.dead && overlap(p, e)) {
+      const canStomp = e.kind !== 'fly' && p.vy > 0 && p.y + p.h - e.y <= 8;
+      if (canStomp) {
+        if (e.kind === 'armored' && e.hp > 1) {
+          e.hp--; e.stunT = 40;
+          p.y = e.y - p.h; p.vy = -4.6; p.jumps = 1; p.coyote = 0;
+          sfx.stomp(); addShake(1.5, 6);
+          burst(e.x + 6, e.y + 6, 6, [G.level.theme.enemy, '#fff1d6'], 1, 14);
+        } else {
+          e.alive = false; e.deadT = 0;
+          p.y = e.y - p.h; p.vy = input.jump ? -5.6 : -4.2; p.jumps = 1; p.coyote = 0;
+          G.score += e.kind === 'armored' ? 80 : 50; sfx.stomp(); addShake(2.5, 9);
+          burst(e.x + 6, e.y + 6, 8, [G.level.theme.enemy, '#fff1d6'], 1.4, 20);
+        }
+      } else damage('enemy', e.x + e.w / 2);
+    }
+  }
+  G.enemies = G.enemies.filter(e => e.alive || e.deadT < 24);
+}
+
+/* ---------- Kamera ---------- */
+function snapCam() {
+  const p = G.player, L = G.level;
+  G.cam = clamp(p.x + p.w / 2 - VW / 2, 0, L.w * T - VW);
+  G.look = 0;
+}
+function updateCam() {
+  const p = G.player, L = G.level, max = L.w * T - VW;
+  // Előretekintés a sebességből, lassan simítva: irányváltáskor nem rángat a kamera
+  const wantLook = clamp(p.vx / PHYS.maxSpeed, -1, 1) * 18;
+  G.look += (wantLook - G.look) * 0.04;
+  const target = clamp(p.x + p.w / 2 - VW / 2 + G.look, 0, max);
+  const diff = target - G.cam;
+  const dead = (target <= 0 || target >= max) ? 0 : 8; // kis holtsáv: apró mozgásra nem mozdul a kamera
+  if (Math.abs(diff) > dead) G.cam += (diff - Math.sign(diff) * dead) * 0.12;
+}
+
+/* ---------- Pálya vége, játék vége ---------- */
+function finishRun() {
+  const nb = G.score > G.best;
+  if (nb) { G.best = G.score; store.set('pixelUgro.best', String(G.best)); }
+  return nb;
+}
+function levelComplete() {
+  sfx.win();
+  G.bonus = 250 + G.lives * 100;
+  G.score += G.bonus;
+  saveProgress(G.levelIndex + 1);
+  const levelSec = (G.playT - G.levelStart) / 60;
+  const lvlBest = saveBestTime('pixelUgro.time.L' + G.levelIndex, levelSec);
+  if (G.levelIndex === LEVELS.length - 1) {
+    G.state = 'win';
+    const nb = finishRun();
+    const totalSec = (G.playT - G.runStart) / 60;
+    const runBest = saveBestTime('pixelUgro.time.total', totalSec);
+    $('wnScore').textContent = G.score;
+    $('wnNew').hidden = !nb;
+    $('wnTime').textContent = fmtTime(totalSec);
+    $('wnBestTime').textContent = fmtTime(runBest.best) + (runBest.isNew ? ' (új rekord!)' : '');
+    G.shareInfo = { title: 'Pixel Ugró — végigvitte!', lines: ['Pontszám: ' + G.score, 'Idő: ' + fmtTime(totalSec)] };
+    showOverlay('p-win', 700);
+  } else {
+    G.state = 'levelclear';
+    $('clCoins').textContent = G.levelCoins + ' / ' + G.totalCoins;
+    $('clBonus').textContent = '+' + G.bonus;
+    $('clScore').textContent = G.score;
+    $('clTime').textContent = fmtTime(levelSec);
+    $('clBestTime').textContent = fmtTime(lvlBest.best) + (lvlBest.isNew ? ' (új rekord!)' : '');
+    G.shareInfo = { title: 'Pixel Ugró — ' + G.level.name, lines: ['Pontszám: ' + G.score, 'Pálya ideje: ' + fmtTime(levelSec)] };
+    showOverlay('p-clear', 700);
+  }
+}
+function gameOver() {
+  sfx.over();
+  G.state = 'gameover';
+  const nb = finishRun();
+  $('goScore').textContent = G.score;
+  $('goNew').hidden = !nb;
+  G.shareInfo = { title: 'Pixel Ugró — próbálkozás', lines: ['Pontszám: ' + G.score, 'Pálya: ' + G.level.name] };
+  showOverlay('p-over', 700);
+}
+
+/* ---------- Frissítés (60 Hz) ---------- */
+function update() {
+  G.t++;
+  stepParticles();
+  musicTick();
+  if (G.shakeT > 0) G.shakeT--;
+  if (G.hitFlash > 0) G.hitFlash--;
+  if (G.state !== 'play') return;
+  G.playT++;
+  const p = G.player;
+  if (G.banner > 0) G.banner--;
+  updatePlatforms();
+  if (p.dead) { updateDead(p); return; }
+  updatePlayer(p);
+  if (!p.dead) pickups(p);
+  if (G.state === 'play' && !G.player.dead) { updateEnemies(G.player); updateProjectiles(G.player); }
+  updateCam();
+}
+
+/* ---------- Rajzolás ---------- */
+function hills(camX, factor, base, a1, a2, col) {
+  ctx.fillStyle = col;
+  const off = Math.floor(camX * factor);
+  for (let x = 0; x < VW; x += 4) {
+    const wx = x + off;
+    let h = Math.sin(wx * 0.021) * a1 + Math.sin(wx * 0.047 + 1.7) * a2;
+    h = Math.round(h / 4) * 4;
+    const top = base - h;
+    ctx.fillRect(x, top, 4, VH - top);
+  }
+}
+
+function txt(s, x, y, col, align, size) {
+  ctx.font = (size || 8) + 'px "Press Start 2P", monospace';
+  ctx.textAlign = align || 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#1c1438'; ctx.fillText(s, x + 1, y + 1);
+  ctx.fillStyle = col || '#fff1d6'; ctx.fillText(s, x, y);
+}
+
+function drawGoal(camX) {
+  const gl = G.level.goal, x = gl.x * T - camX, y = (gl.y - 1) * T;
+  ctx.fillStyle = '#fff1d6'; ctx.fillRect(x + 7, y, 2, 32);
+  ctx.fillStyle = '#ffc94a'; ctx.fillRect(x + 6, y - 3, 4, 4);
+  for (let i = 0; i < 9; i++) {
+    const w = Math.round(Math.sin(G.t / 9 + i * 0.7) * 1.2);
+    ctx.fillStyle = i % 3 === 2 ? '#ff9a3d' : '#ff6b7a';
+    ctx.fillRect(x + 9 + i, y + 2 + w, 1, 8 - Math.floor(i * 0.7));
+  }
+}
+function drawCheck(k, camX) {
+  const x = k.x * T - camX, y = k.y * T;
+  ctx.fillStyle = '#cfd2ea'; ctx.fillRect(x + 7, y + 3, 2, 13);
+  const w = k.on ? Math.round(Math.sin(G.t / 8)) : 0;
+  ctx.fillStyle = k.on ? '#ffc94a' : '#8a8fb0';
+  ctx.fillRect(x + 9, y + 3 + w, 6, 4);
+}
+
+function render() {
+  const L = G.level, th = L.theme, camX = Math.round(G.cam);
+  ctx.textAlign = 'left';
+  let shX = 0, shY = 0;
+  if (G.shakeT > 0) {
+    const k = G.shakeMag * (G.shakeT / G.shakeDur);
+    shX = Math.round((Math.random() * 2 - 1) * k);
+    shY = Math.round((Math.random() * 2 - 1) * k * 0.6);
+  }
+  ctx.save();
+  const camY = Math.min(0, VH_dyn - VH);
+  ctx.translate(shX, shY + camY);
+  ctx.drawImage(G.bg, 0, 0);
+  hills(camX, 0.15, 120, 16, 8, th.hillFar);
+  hills(camX, 0.35, 142, 12, 6, th.hillNear);
+
+  const x0 = Math.max(0, Math.floor(camX / T)), x1 = Math.min(L.w - 1, x0 + VW / T + 1);
+  for (let ty = 0; ty < ROWS; ty++) {
+    for (let tx = x0; tx <= x1; tx++) {
+      const c = L.g[ty][tx];
+      if (c === '.') continue;
+      const dx = tx * T - camX, dy = ty * T;
+      if (c === '#') ctx.drawImage(isSolid(tx, ty - 1) ? G.tiles.fill : G.tiles.top, dx, dy);
+      else if (c === 'B') ctx.drawImage(G.tiles.brick, dx, dy);
+      else if (c === '^') ctx.drawImage(G.tiles.spike, dx, dy);
+      else if (c === 'S') ctx.drawImage(G.tiles.spring, dx, dy);
+    }
+  }
+  for (let ty = ROWS; ty * T < VH_dyn; ty++) {
+    for (let tx = x0; tx <= x1; tx++) ctx.drawImage(G.tiles.fill, tx * T - camX, ty * T);
+  }
+
+  for (const pl of G.platforms) {
+    if (!platSolidNow(pl)) continue;
+    const dx = Math.round(pl.x - camX), dy = Math.round(pl.y);
+    const flick = pl.kind === 'blink' && (((G.t + pl.phase) % pl.period) % pl.onLen) > pl.onLen - 24 && Math.floor(G.t / 4) % 2 === 0;
+    if (flick) continue;
+    ctx.fillStyle = pl.kind === 'oneway' ? th.brickL : th.brick;
+    ctx.fillRect(dx, dy, pl.w, pl.h);
+    ctx.fillStyle = th.mortar;
+    ctx.fillRect(dx, dy, pl.w, 2);
+    for (let seg = 0; seg < pl.w; seg += 8) ctx.fillRect(dx + seg, dy + 2, 1, pl.h - 2);
+  }
+
+  for (const k of G.checks) drawCheck(k, camX);
+  drawGoal(camX);
+
+  const cfi = COIN_SEQ[Math.floor(G.t / 8) % 4];
+  for (const c of G.coins) {
+    if (c.got) continue;
+    const bob = Math.round(Math.sin((G.t + c.x) / 18));
+    ctx.drawImage(c.big ? GEM_F[cfi] : COIN_F[cfi], Math.round(c.x - camX), c.y + bob);
+  }
+
+  for (const e of G.enemies) {
+    if (e.alive) {
+      if (e.stunT > 0 && Math.floor(e.stunT / 4) % 2 === 0) continue; // páncélos: villog kábultan
+      let sA = G.enemySpr.a, sB = G.enemySpr.b;
+      if (e.kind === 'fly') { sA = G.enemySpr.flyA; sB = G.enemySpr.flyB; }
+      else if (e.kind === 'armored') { sA = G.enemySpr.armA; sB = G.enemySpr.armB; }
+      const f = Math.floor(e.anim / 12) % 2 ? sB : sA;
+      const facing = e.kind === 'fly' ? Math.sign(e.x - e.baseX || 1) : e.kind === 'shoot' ? -e.dir : e.vx;
+      const bob = e.kind === 'fly' ? Math.round(Math.sin(e.t2 / 10) * 2) : 0;
+      ctx.drawImage(facing < 0 ? f.l : f.r, Math.round(e.x - camX), Math.round(e.y - 1 + bob));
+    } else {
+      ctx.drawImage(G.enemySpr.a.r, 0, 0, 12, 10, Math.round(e.x - camX), Math.round(e.y + 5), 12, 4);
+    }
+  }
+  for (const pr of G.projectiles) {
+    ctx.fillStyle = '#ffd45e';
+    ctx.fillRect(Math.round(pr.x - camX), Math.round(pr.y), 5, 4);
+    ctx.fillStyle = '#fff3b0';
+    ctx.fillRect(Math.round(pr.x - camX) + (pr.vx > 0 ? 3 : 0), Math.round(pr.y) + 1, 2, 2);
+  }
+
+  const p = G.player;
+  const blink = p.inv > 0 && Math.floor(p.inv / 4) % 2 === 0;
+  if (!blink) {
+    let fr = PF.idle;
+    if (p.dead || !p.onGround) fr = PF.jump;
+    else if (Math.abs(p.vx) > 0.25) {
+      // 4 fázisú futóciklus (lépés – vissza középre – lépés – vissza középre) simábbnak hat, mint a 2 fázisú
+      const cyc = Math.floor(p.anim) % 4;
+      fr = cyc === 0 ? PF.run1 : cyc === 2 ? PF.run2 : PF.idle;
+    }
+    const img = p.facing < 0 ? fr.l : fr.r;
+    const dx = Math.round(p.x - 2 - camX), dy = Math.round(p.y - 4);
+    let sx = 1, sy = 1;
+    if (p.squashT > 0) { const k = p.squashT / 8; sx = 1 + 0.22 * k; sy = 1 - 0.2 * k; }
+    else if (p.stretchT > 0) { const k = p.stretchT / 6; sx = 1 - 0.12 * k; sy = 1 + 0.14 * k; }
+    if (sx !== 1 || sy !== 1) {
+      ctx.save();
+      ctx.translate(dx + img.width / 2, dy + img.height);
+      ctx.scale(sx, sy);
+      ctx.drawImage(img, -img.width / 2, -img.height);
+      ctx.restore();
+    } else ctx.drawImage(img, dx, dy);
+  }
+
+  for (const q of G.particles) {
+    ctx.fillStyle = q.c;
+    ctx.fillRect(Math.round(q.x - camX), Math.round(q.y), q.s, q.s);
+  }
+  ctx.restore();
+  if (G.hitFlash > 0) {
+    ctx.fillStyle = 'rgba(255,40,60,' + (0.32 * G.hitFlash / 16) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
+
+  if (G.state !== 'title') {
+    for (let i = 0; i < 3; i++) ctx.drawImage(i < G.lives ? HEART_ON : HEART_OFF, 6 + i * 9, 6);
+    ctx.drawImage(COIN_F[0], 40, 5);
+    txt(G.levelCoins + '/' + G.totalCoins, 51, 6);
+    txt(String(G.score).padStart(6, '0'), VW / 2, 6, '#ffc94a', 'center');
+    txt(fmtTime((G.playT - G.levelStart) / 60), VW - 4, 6, '#fff1d6', 'right');
+  }
+  if (G.banner > 0) {
+    ctx.globalAlpha = Math.min(1, G.banner / 30);
+    txt('PÁLYA ' + (G.levelIndex + 1), VW / 2, 66, '#ffc94a', 'center', 16);
+    txt(L.name, VW / 2, 90, '#fff1d6', 'center', 8);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* ---------- Menük ---------- */
+function showOverlay(name, delay) {
+  const ov = $('overlay');
+  document.body.classList.toggle('menu', !!name);
+  document.body.classList.toggle('show-touch', name === 'p-settings');
+  document.querySelectorAll('.panel').forEach(p => { p.hidden = p.id !== name; });
+  ov.hidden = !name;
+  if (!name) return;
+  const panel = $(name), btn = panel.querySelector('.primary');
+  if (name === 'p-title') {
+    $('bestLine').textContent = G.best > 0 ? 'Rekord: ' + G.best : '';
+    const cbtn = $('btnContinue');
+    cbtn.hidden = progress <= 0;
+    if (!cbtn.hidden) cbtn.textContent = 'Folytatás (' + LEVELS[progress]().name + ')';
+  }
+  if (delay) {
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.disabled = false;
+      if (!ov.hidden && !panel.hidden) btn.focus({ preventScroll: true });
+    }, delay);
+  } else btn.focus({ preventScroll: true });
+}
+
+function togglePause() {
+  if (G.state === 'play') { G.state = 'paused'; resetInput(); showOverlay('p-pause'); }
+  else if (G.state === 'paused') resume();
+}
+function resume() { G.state = 'play'; resetInput(); showOverlay(null); }
+
+$('btnStart').onclick = startGame;
+$('btnContinue').onclick = continueGame;
+$('btnNext').onclick = nextLevel;
+$('btnRetry').onclick = startGame;
+$('btnAgain').onclick = startGame;
+
+/* ---------- Megosztható eredménykártya ---------- */
+function buildShareCard(title, lines) {
+  const c = document.createElement('canvas');
+  c.width = 400; c.height = 225;
+  const g = c.getContext('2d');
+  const th = (G.level && G.level.theme) || THEMES.dawn;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(G.bg || makeBackground(th), 0, 0, VW, VH, 0, 0, 400, 220);
+  g.fillStyle = 'rgba(18,12,42,.55)'; g.fillRect(0, 0, 400, 220);
+  g.fillStyle = '#1c1438'; g.fillRect(0, 220, 400, 5);
+  g.textAlign = 'center'; g.font = '18px "Press Start 2P", monospace';
+  g.fillStyle = '#1c1438'; g.fillText(title, 202, 42);
+  g.fillStyle = '#ffc94a'; g.fillText(title, 200, 40);
+  g.font = '12px "Press Start 2P", monospace';
+  lines.forEach((line, i) => {
+    g.fillStyle = '#1c1438'; g.fillText(line, 202, 92 + i * 26);
+    g.fillStyle = '#fff1d6'; g.fillText(line, 200, 90 + i * 26);
+  });
+  g.font = '9px "Press Start 2P", monospace'; g.fillStyle = '#fff1d6';
+  g.fillText('Pixel Ugró', 200, 200);
+  return c;
+}
+function shareResult(btn) {
+  const info = G.shareInfo || { title: 'Pixel Ugró', lines: ['Pontszám: ' + G.score] };
+  const canvas = buildShareCard(info.title, info.lines);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    let file = null;
+    try { file = new File([blob], 'pixel-ugro-eredmeny.png', { type: 'image/png' }); } catch (e) { /* régebbi böngésző */ }
+    if (file && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      navigator.share({ files: [file], title: info.title }).catch(() => {});
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'pixel-ugro-eredmeny.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }, 'image/png');
+  if (btn) btn.blur();
+}
+$('btnShareClear').onclick = (e) => shareResult(e.currentTarget);
+$('btnShareOver').onclick = (e) => shareResult(e.currentTarget);
+$('btnShareWin').onclick = (e) => shareResult(e.currentTarget);
+$('btnResume').onclick = resume;
+$('btnRestart').onclick = startGame;
+$('btnPause').onclick = e => { togglePause(); e.currentTarget.blur(); };
+
+
+/* ---------- Fordítsd el a telefont ---------- */
+$('btnRotateOk').onclick = () => { $('rotate').dataset.dismissed = '1'; };
+
+function openSettings(from) { G.settingsFrom = from; showOverlay('p-settings'); }
+$('btnSettings1').onclick = () => openSettings('p-title');
+$('btnSettings2').onclick = () => openSettings('p-pause');
+$('btnSettingsBack').onclick = () => showOverlay(G.settingsFrom || 'p-title');
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  const k = b.parentElement.dataset.setting;
+  SET[k] = b.dataset.v;
+  store.set('pixelUgro.settings', JSON.stringify(SET));
+  applySettings();
+  if (k === 'haptic' && SET.haptic === 'on') buzz(30);
+}));
+
+function syncMute() { $('btnMute').classList.toggle('off', muted); }
+$('btnMute').onclick = e => {
+  muted = !muted; store.set('pixelUgro.muted', muted ? '1' : '0');
+  syncMute(); if (!muted) { audio(); tone(660, 880, 0.08); }
+  e.currentTarget.blur();
+};
+syncMute();
+
+/* ---------- Bemenet ---------- */
+const KEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+  ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', KeyZ: 'jump', KeyX: 'jump' };
+
+addEventListener('keydown', e => {
+  audio();
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (e.repeat) return;
+    if (!$('p-settings').hidden) showOverlay(G.settingsFrom || 'p-title'); else togglePause();
+    return;
+  }
+  const k = KEYS[e.code];
+  if (!k || G.state !== 'play') return;
+  e.preventDefault();
+  if (k === 'jump') { if (!input.jump && !e.repeat) input.jumpPressed = true; input.jump = true; }
+  else input[k] = true;
+});
+addEventListener('keyup', e => {
+  const k = KEYS[e.code];
+  if (!k) return;
+  input[k] = false;
+});
+addEventListener('blur', () => { resetInput(); if (G.state === 'play') togglePause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') togglePause(); });
+addEventListener('touchstart', () => document.documentElement.classList.add('has-touch'), { passive: true, once: true });
+addEventListener('contextmenu', e => e.preventDefault());
+
+/* Irányítógombok: egy ujjal átcsúsztathatsz balról jobbra anélkül, hogy felemelnéd */
+const pad = document.querySelector('.pad');
+const padBtn = { left: pad.querySelector('[data-k="left"]'), right: pad.querySelector('[data-k="right"]') };
+const padPtr = new Map();
+function padDir(e, prev) {
+  const r = pad.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  if (prev === 'left' && x < 0.56) return 'left';   // kis holtsáv középen: nem villog ide-oda
+  if (prev === 'right' && x > 0.44) return 'right';
+  return x < 0.5 ? 'left' : 'right';
+}
+function padSync() {
+  const v = [...padPtr.values()];
+  input.left = v.includes('left');
+  input.right = v.includes('right');
+  padBtn.left.classList.toggle('on', input.left);
+  padBtn.right.classList.toggle('on', input.right);
+}
+pad.addEventListener('pointerdown', e => {
+  e.preventDefault(); audio();
+  try { pad.setPointerCapture(e.pointerId); } catch (err) { /* nem baj */ }
+  padPtr.set(e.pointerId, padDir(e));
+  padSync();
+});
+pad.addEventListener('pointermove', e => {
+  if (!padPtr.has(e.pointerId)) return;
+  padPtr.set(e.pointerId, padDir(e, padPtr.get(e.pointerId)));
+  padSync();
+});
+const padUp = e => { padPtr.delete(e.pointerId); padSync(); };
+pad.addEventListener('pointerup', padUp);
+pad.addEventListener('pointercancel', padUp);
+pad.addEventListener('lostpointercapture', padUp);
+
+const jumpBtn = document.querySelector('.tbtn.jump');
+const jumpPtr = new Set();
+jumpBtn.addEventListener('pointerdown', e => {
+  e.preventDefault(); audio();
+  try { jumpBtn.setPointerCapture(e.pointerId); } catch (err) { /* nem baj */ }
+  jumpPtr.add(e.pointerId);
+  jumpBtn.classList.add('on');
+  if (!input.jump) input.jumpPressed = true;
+  input.jump = true;
+});
+const jumpUp = e => {
+  jumpPtr.delete(e.pointerId);
+  if (!jumpPtr.size) { jumpBtn.classList.remove('on'); input.jump = false; }
+};
+jumpBtn.addEventListener('pointerup', jumpUp);
+jumpBtn.addEventListener('pointercancel', jumpUp);
+jumpBtn.addEventListener('lostpointercapture', jumpUp);
+document.addEventListener('gesturestart', e => e.preventDefault()); // iOS: ne nagyítson csippentésre
+
+/* ---------- Méretezés ---------- */
+function fit() {
+  // A szélesség mindig a teljes képernyőt tölti ki (nincs oldalsó fekete sáv).
+  // A magasság ehhez igazodik: ha marad hely lent, a föld egyszerűen mélyebbre nyúlik,
+  // így az irányítógombok mindig sima földre kerülnek, sosem üres sávra vagy a pályára.
+  const s = innerWidth / VW;
+  VH_dyn = clamp(Math.round(innerHeight / s), 40, 2000);
+  canvas.height = VH_dyn;
+  document.documentElement.style.setProperty('--w', (VW * s) + 'px');
+  document.documentElement.style.setProperty('--h', (VH_dyn * s) + 'px');
+}
+addEventListener('resize', fit);
+addEventListener('orientationchange', fit);
+fit();
+
+/* ---------- Főciklus ---------- */
+const STEP = 1000 / 60;
+let last = 0, acc = 0;
+function frame(now) {
+  if (!last) last = now;
+  acc += Math.min(100, now - last);
+  last = now;
+  let n = 0;
+  while (acc >= STEP && n < 6) { update(); acc -= STEP; n++; }
+  if (n === 6) acc = 0;
+  render();
+  requestAnimationFrame(frame);
+}
+
+applySettings();
+$('hapticHint').hidden = typeof navigator !== 'undefined' && 'vibrate' in navigator;
+loadLevel(0);
+showOverlay('p-title');
+requestAnimationFrame(frame);
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => { /* offline-mentés nem kötelező */ });
+    });
+  }
+</script>
+</body>
+</html>
