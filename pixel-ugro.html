@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pixel Ugró">
+
+
+
+<title>Pixel Ugró</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0a0a0a; --deep:#050505; --plum:#2a2a2a; --cream:#eae6d6; --gold:#e8e4d6; --coral:#8a8a8a;
+  --w:min(100vw,calc(100vh*20/11));
+  --u:calc(var(--w)/320);
+  --px:clamp(2px,.6vmin,5px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--deep);overflow:hidden;overscroll-behavior:none}
+body{
+  display:grid;place-items:center;
+  font-family:"Press Start 2P","Courier New",monospace;color:var(--cream);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+@media (orientation:portrait){
+  body{place-items:start center;padding-top:env(safe-area-inset-top)}
+}
+#stage{position:relative;width:var(--w);height:var(--h)}
+canvas{display:block;width:100%;height:100%;image-rendering:crisp-edges;image-rendering:pixelated;background:#000}
+
+/* jobb felső gombok: szünet, hang */
+.hud{position:absolute;top:calc(env(safe-area-inset-top,0px) + 18px);right:calc(env(safe-area-inset-right,0px) + 26px);display:flex;gap:calc(var(--u)*3)}
+.ico{
+  width:clamp(30px,calc(var(--u)*11),56px);height:clamp(30px,calc(var(--u)*11),56px);
+  padding:16%;border:0;cursor:pointer;color:var(--cream);
+  background:rgba(28,20,56,.72);box-shadow:inset 0 0 0 var(--px) rgba(255,241,214,.6);
+}
+.ico svg{width:100%;height:100%;display:block;fill:currentColor;shape-rendering:crispEdges}
+.ico:focus-visible{outline:var(--px) solid var(--gold)}
+#btnMute .slash{display:none}
+#btnMute.off .wave{display:none}
+#btnMute.off .slash{display:inline}
+.ico[hidden]{display:none}
+.hud[hidden]{display:none}
+
+/* Fordítsd el a telefont – csak érintős eszközön, álló tájolásban */
+#rotate{
+  display:none;position:fixed;inset:0;z-index:6;background:var(--deep);
+  align-items:center;justify-content:center;text-align:center;padding:20px;
+}
+@media (pointer:coarse) and (orientation:portrait){ #rotate{display:flex} }
+#rotate[data-dismissed="1"]{display:none !important}
+.rot-phone{
+  width:clamp(40px,10vmin,64px);height:clamp(64px,16vmin,100px);margin:0 auto 1.4em;
+  border:var(--px) solid var(--cream);border-radius:6px;position:relative;
+  animation:rotphone 2.4s ease-in-out infinite;
+}
+.rot-phone::after{content:"";position:absolute;left:50%;bottom:8%;width:14%;height:3%;background:var(--cream);transform:translateX(-50%)}
+@keyframes rotphone{0%,35%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+#rotate p{font-size:clamp(11px,3vmin,16px);line-height:1.7;max-width:22em;margin:0 0 1.2em}
+#rotate .btn{font-size:clamp(9px,2.4vmin,13px)}
+
+/* menük */
+#overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(3,3,3,.55);padding:12px;z-index:4}
+#overlay[hidden]{display:none}
+.panel{
+  width:min(92vw,560px);max-height:92vh;overflow:auto;background:var(--ink);
+  padding:calc(var(--px)*6);text-align:center;
+  font-size:clamp(10px,2.4vmin,18px);line-height:1.8;
+  box-shadow:
+    0 0 0 var(--px) var(--gold),
+    0 0 0 calc(var(--px)*2) var(--ink),
+    calc(var(--px)*4) calc(var(--px)*4) 0 calc(var(--px)*2) rgba(0,0,0,.4);
+}
+.panel[hidden]{display:none}
+.panel h1,.panel h2{margin:0 0 .8em;font-weight:400;line-height:1.25;color:var(--gold)}
+.panel h1{
+  font-size:clamp(20px,6.4vmin,44px);
+  text-shadow:var(--px) var(--px) 0 var(--coral),calc(var(--px)*2) calc(var(--px)*2) 0 #2a2a2a;
+}
+#p-title h1::after{content:"";display:block;width:min(60%,220px);height:var(--px);background:var(--gold);opacity:.5;margin:.6em auto 0}
+.panel h2{font-size:clamp(14px,4.2vmin,28px)}
+.panel p{margin:0 0 1em}
+.hint{opacity:.8;font-size:.8em}
+.best{color:var(--gold);margin:.4em 0 0}
+.stat{display:flex;justify-content:space-between;gap:1em;max-width:22em;margin:0 auto .5em}
+.stat b{font-weight:400;color:var(--gold)}
+.btnGroup{display:flex;flex-direction:column;align-items:stretch;gap:.4em;margin:.4em auto 0;width:min(100%,320px)}
+.btnGroup>.btn{display:block;width:100%;box-sizing:border-box;margin:0}
+.btnGroup>.btn[hidden]{display:none}
+.btnGroup>.btn.needs-touch{display:none}
+@media (pointer:coarse){.btnGroup>.btn.needs-touch{display:block}}
+html.has-touch .btnGroup>.btn.needs-touch{display:block}
+.panel>.btn{
+  display:block;width:min(100%,320px);box-sizing:border-box;margin:.3em auto;
+}
+.btn{
+  font:inherit;color:var(--ink);background:var(--gold);border:0;cursor:pointer;
+  padding:.9em 1.6em;margin:.4em;box-shadow:0 calc(var(--px)*2) 0 #9a9689;
+}
+.btn:active{transform:translateY(var(--px));box-shadow:0 var(--px) 0 #9a9689}
+.btn.alt{background:var(--plum);color:var(--cream);box-shadow:0 calc(var(--px)*2) 0 #111111}
+.btn.alt:active{box-shadow:0 var(--px) 0 #111111}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible{outline:var(--px) solid var(--cream);outline-offset:var(--px)}
+.touchonly{display:none}
+@media (pointer:coarse){.kbd{display:none}.touchonly{display:block}}
+html.has-touch .kbd{display:none}
+html.has-touch .touchonly{display:block}
+
+/* érintős vezérlők */
+:root{--tscale:1}
+html[data-tsize="s"]{--tscale:.8}
+html[data-tsize="l"]{--tscale:1.25}
+#touch{
+  position:fixed;left:0;right:0;bottom:0;display:none;justify-content:space-between;align-items:flex-end;
+  padding:6px 38px max(14px,env(safe-area-inset-bottom)) 38px;
+  pointer-events:none;z-index:5;
+}
+html[data-hand="left"] #touch{flex-direction:row-reverse}
+@media (pointer:coarse){#touch{display:flex}}
+html.has-touch #touch{display:flex}
+body.menu:not(.show-touch) #touch{visibility:hidden}
+.pad{display:flex;gap:clamp(10px,3vmin,24px);padding:4px;pointer-events:auto;touch-action:none}
+.tbtn{
+  --s:calc(clamp(64px,17vmin,104px)*var(--tscale));
+  position:relative;width:var(--s);height:var(--s);
+  border:0;padding:0;display:grid;place-items:center;
+  background:rgba(255,241,214,.14);box-shadow:inset 0 0 0 var(--px) rgba(255,241,214,.5);
+  touch-action:none;-webkit-touch-callout:none;
+}
+.pad .tbtn{pointer-events:none}
+.tbtn.jump{pointer-events:auto}
+.tbtn.jump::after{content:"";position:absolute;inset:-14px}
+.tbtn.on{background:rgba(255,241,214,.38)}
+.tbtn.jump{background:rgba(255,107,122,.28);box-shadow:inset 0 0 0 var(--px) rgba(255,180,190,.7)}
+.tbtn.jump.on{background:rgba(255,107,122,.55)}
+.tbtn i{display:block;width:38%;height:38%;background:var(--cream)}
+.tbtn .l{clip-path:polygon(100% 0,100% 100%,0 50%)}
+.tbtn .r{clip-path:polygon(0 0,100% 50%,0 100%)}
+.tbtn .u{clip-path:polygon(50% 0,100% 100%,0 100%)}
+
+/* pályaválasztó */
+#lvList .btn{display:flex;justify-content:space-between;align-items:center;gap:1em;width:100%;margin:.4em 0}
+#lvList .btn img{width:clamp(14px,3.6vmin,22px);height:auto;margin-left:.25em;image-rendering:pixelated}
+#lvList .lvMain{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left}
+#lvList .lvRecord{font-size:.62em;opacity:.65;letter-spacing:0}
+
+/* csillagminősítés (pixel) */
+.stars{display:flex;justify-content:center;gap:calc(var(--px)*4);margin:0 0 .8em}
+.stars img{width:clamp(30px,9vmin,50px);height:auto;image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* beállítások */
+.needs-touch{display:none}
+@media (pointer:coarse){.needs-touch{display:inline-block}}
+html.has-touch .needs-touch{display:inline-block}
+.row{display:grid;gap:.5em;margin:0 0 1.1em;text-align:left}
+.seg{display:flex;gap:calc(var(--px)*2)}
+.seg button{
+  flex:1;font:inherit;font-size:.85em;padding:.8em .3em;border:0;cursor:pointer;
+  color:var(--cream);background:var(--plum);box-shadow:0 calc(var(--px)*2) 0 #111111;
+}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--gold);box-shadow:0 calc(var(--px)*2) 0 #9a9689}
+.seg button:focus-visible{outline:var(--px) solid var(--cream);outline-offset:var(--px)}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="game" width="320" height="176"></canvas>
+  <div class="hud" id="hud">
+    <button id="btnMute" class="ico" type="button" aria-label="Hang be/ki">
+      <svg viewBox="0 0 10 8" aria-hidden="true">
+        <rect x="0" y="3" width="2" height="2"/><rect x="2" y="2" width="2" height="4"/><rect x="4" y="1" width="2" height="6"/>
+        <g class="wave"><rect x="7" y="3" width="1" height="2"/><rect x="8" y="1" width="1" height="6"/></g>
+        <g class="slash"><rect x="7" y="2" width="1" height="1"/><rect x="9" y="2" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/></g>
+      </svg>
+    </button>
+    <button id="btnPause" class="ico" type="button" aria-label="Szünet">
+      <svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1" y="0" width="3" height="10"/><rect x="6" y="0" width="3" height="10"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="overlay" hidden>
+  <section class="panel" id="p-title" hidden>
+    <h1>PIXEL UGRÓ</h1>
+    <p>Ugorj az ellenségekre, gyűjts érméket, és érj el a zászlóhoz!</p>
+    <div class="btnGroup">
+      <button class="btn primary" id="btnStart" type="button">Új játék</button>
+      <button class="btn alt" id="btnContinue" type="button" hidden>Folytatás</button>
+      <button class="btn alt" id="btnLevels" type="button" hidden>Pályaválasztó</button>
+      <button class="btn alt needs-touch" id="btnSettings1" type="button">Beállítások</button>
+    </div>
+    <p class="best" id="bestLine"></p>
+    <p class="hint kbd">Nyilak vagy A/D: mozgás<br>Szóköz vagy W: ugrás<br>P: szünet</p>
+    <p class="hint touchonly">Ugorj még egyszer a levegőben, hogy messzebb juss!</p>
+  </section>
+
+  <section class="panel" id="p-levels" hidden>
+    <h2>Pályák</h2>
+    <div id="lvList"></div>
+    <button class="btn primary" id="btnLvBack" type="button">Vissza</button>
+  </section>
+
+  <section class="panel" id="p-pause" hidden>
+    <h2>Szünet</h2>
+    <div class="btnGroup">
+      <button class="btn primary" id="btnResume" type="button">Folytatás</button>
+      <button class="btn alt needs-touch" id="btnSettings2" type="button">Beállítások</button>
+      <button class="btn alt" id="btnRestart" type="button">Újrakezdés</button>
+      <button class="btn alt" id="btnMainMenu" type="button">Főmenü</button>
+    </div>
+  </section>
+
+  <section class="panel" id="p-settings" hidden>
+    <h2>Beállítások</h2>
+    <div class="row"><span>Nehézség</span>
+      <div class="seg" data-setting="difficulty">
+        <button type="button" data-v="normal">Normál</button><button type="button" data-v="easy">Könnyű</button>
+      </div></div>
+    <div class="row"><span>Kezelés</span>
+      <div class="seg" data-setting="hand">
+        <button type="button" data-v="right">Jobbkezes</button><button type="button" data-v="left">Balkezes</button>
+      </div></div>
+    <div class="row"><span>Gombméret</span>
+      <div class="seg" data-setting="tsize">
+        <button type="button" data-v="s">Kicsi</button><button type="button" data-v="m">Közepes</button><button type="button" data-v="l">Nagy</button>
+      </div></div>
+    <div class="row"><span>Zene</span>
+      <div class="seg" data-setting="music">
+        <button type="button" data-v="on">Be</button><button type="button" data-v="off">Ki</button>
+      </div></div>
+    <div class="row"><span>Rezgés</span>
+      <div class="seg" data-setting="haptic">
+        <button type="button" data-v="on">Be</button><button type="button" data-v="off">Ki</button>
+      </div></div>
+    <p class="hint" id="hapticHint" hidden>Ezen az eszközön a böngésző nem engedi a rezgést.</p>
+    <button class="btn primary" id="btnSettingsBack" type="button">Kész</button>
+  </section>
+
+  <section class="panel" id="p-clear" hidden>
+    <h2>Pálya kész!</h2>
+    <p class="stars" id="clStars"></p>
+    <div class="stat"><span>Érmék</span><b id="clCoins"></b></div>
+    <div class="stat"><span>Bónusz</span><b id="clBonus"></b></div>
+    <div class="stat"><span>Pontszám</span><b id="clScore"></b></div>
+    <div class="stat"><span>Idő</span><b id="clTime"></b></div>
+    <p class="best" id="clBestTime"></p>
+    <div class="btnGroup">
+      <button class="btn primary" id="btnNext" type="button">Következő pálya</button>
+      <button class="btn alt" id="btnShareClear" type="button">Megosztás</button>
+    </div>
+  </section>
+
+  <section class="panel" id="p-over" hidden>
+    <h2>Vége a játéknak</h2>
+    <div class="stat"><span>Pontszám</span><b id="goScore"></b></div>
+    <p class="best" id="goNew" hidden>Új rekord!</p>
+    <div class="btnGroup">
+      <button class="btn primary" id="btnRetry" type="button">Újra</button>
+      <button class="btn alt" id="btnShareOver" type="button">Megosztás</button>
+    </div>
+  </section>
+
+  <section class="panel" id="p-win" hidden>
+    <h2>Végigvitted!</h2>
+    <div class="stat"><span>Összpontszám</span><b id="wnScore"></b></div>
+    <p class="best" id="wnNew" hidden>Új rekord!</p>
+    <div class="stat"><span>Idő</span><b id="wnTime"></b></div>
+    <p class="best" id="wnBestTime"></p>
+    <div class="btnGroup">
+      <button class="btn primary" id="btnAgain" type="button">Újra a kezdetről</button>
+      <button class="btn alt" id="btnShareWin" type="button">Megosztás</button>
+    </div>
+  </section>
+</div>
+
+<div id="rotate" role="alertdialog" aria-label="Fordítsd el a telefont">
+  <div>
+    <div class="rot-phone" aria-hidden="true"></div>
+    <p>Fekvő tájolásban élvezhető igazán — fordítsd el a telefont!</p>
+    <button class="btn alt" id="btnRotateOk" type="button">Folytatás így is</button>
+  </div>
+</div>
+
+<div id="touch" aria-hidden="true">
+  <div class="pad">
+    <button class="tbtn" data-k="left" type="button" tabindex="-1"><i class="l"></i></button>
+    <button class="tbtn" data-k="right" type="button" tabindex="-1"><i class="r"></i></button>
+  </div>
+  <button class="tbtn jump" data-k="jump" type="button" tabindex="-1"><i class="u"></i></button>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   PIXEL UGRÓ – 2D platformer
+   Belső felbontás: 320x176 (20x11 csempe, egy csempe 16x16 pixel)
+   A pályákat lentebb, a "PÁLYÁK" részben lehet szerkeszteni.
+   ===================================================================== */
+
+const T = 16, VW = 320, VH = 176, ROWS = 16; // ROWS: a pálya sorai; a 11. sor alatti rész csak a gödrök mélysége
+let VH_dyn = VH;
+let VW_dyn = VW;
+let VIEW_TOP = 0;          // ennyi világ-egységet vág le a kép teteje (ráközelítés)
+let HUD_L = 8, HUD_T = 6;  // HUD (szívek, pontszám) behúzása a kijelző sarkaitól
+const ZOOM = 1.3, MAX_CUT = 12; // kamera ráközelítés (max) és a pálya tetejéből levágható rész
+/* Játékérzet – ezeket az értékeket érdemes hangolni (px / képkocka, 60 fps) */
+const SPRING_VY = -10.5;
+const PHYS = {
+  grav: 0.3,          // alap gravitáció
+  fallMult: 1.12,     // esésnél kicsit erősebb: határozottabb landolás
+  apexMult: 0.65,     // az ugrás csúcsán kis "lebegés", ha nyomva tartod az ugrást
+  apexBand: 1.1,      // ennyi függőleges sebesség alatt számít csúcsnak
+  cutMult: 2.4,       // ha elengeded az ugrást, ennyiszeres gravitáció (rövid ugrás)
+  maxFall: 6.5,
+  maxSpeed: 1.7,
+  accelGround: 0.34, accelAir: 0.24,
+  fricGround: 0.32, fricAir: 0.06,
+  turnBoost: 1.6,     // irányváltásnál gyorsabb fékezés (nincs csúszás)
+  jump: -6.2, djump: -5.4,
+  coyote: 7,          // ennyi képkockáig még ugorhatsz a perem után
+  buffer: 8           // ennyi képkockával előbb is lenyomhatod az ugrást landolás előtt
+};
+
+const $ = id => document.getElementById(id);
+const canvas = $('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const triWave = (t, period) => { const p = (((t % period) + period) % period) / period; return p < 0.5 ? p * 2 : 2 - p * 2; };
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* nem baj */ } }
+};
+
+/* ---------- Beállítások és rezgés ---------- */
+const SET_OPTS = { hand: ['right', 'left'], tsize: ['s', 'm', 'l'], haptic: ['on', 'off'], music: ['on', 'off'], difficulty: ['normal', 'easy'] };
+const SET = { hand: 'right', tsize: 'm', haptic: 'on', music: 'on', difficulty: 'normal' };
+try {
+  const saved = JSON.parse(store.get('pixelUgro.settings', '{}')) || {};
+  for (const k in SET_OPTS) if (SET_OPTS[k].includes(saved[k])) SET[k] = saved[k];
+} catch (e) { /* alapértékek maradnak */ }
+
+function applySettings() {
+  const r = document.documentElement;
+  r.dataset.hand = SET.hand;
+  r.dataset.tsize = SET.tsize;
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === SET[seg.dataset.setting])));
+  });
+}
+function buzz(pattern) {
+  if (SET.haptic !== 'on' || typeof navigator === 'undefined' || !('vibrate' in navigator)) return;
+  if (!(matchMedia('(pointer:coarse)').matches || document.documentElement.classList.contains('has-touch'))) return;
+  try { navigator.vibrate(pattern); } catch (e) { /* nem baj */ }
+}
+
+/* ---------- Témák (színek pályánként) ---------- */
+const THEMES = {
+  dawn: {
+    fx: 'ember',
+    sky: ['#0d0a0c', '#24141c', '#40202c', '#66303a', '#94473f', '#c27a55'],
+    sun: '#f6ecdc', glow: '#b8805e', sunX: 236, sunY: 58, sunR: 16, stars: false,
+    hillFar: '#3a2229', hillNear: '#1c1015',
+    grass: '#cfcabb', grassD: '#8f8a7c', dirt: '#3a2f2c', dirtD: '#251c1b', abyss: '#241216',
+    brick: '#5c5c5c', brickL: '#8a8a8a', mortar: '#1c1c1c',
+    enemy: '#cfcabb', enemyD: '#8a8a8a'
+  },
+  dusk: {
+    fx: 'dust',
+    sky: ['#06050a', '#151230', '#241c4a', '#3a2a62', '#58367a', '#84488a'],
+    sun: '#eadff0', glow: '#7a5a9a', sunX: 92, sunY: 96, sunR: 20, stars: false,
+    hillFar: '#241c3c', hillNear: '#100c20',
+    grass: '#b8b3a4', grassD: '#78745f', dirt: '#2f2b3a', dirtD: '#1b1826', abyss: '#140f26',
+    brick: '#4a4a4a', brickL: '#767676', mortar: '#161616',
+    enemy: '#cfcabb', enemyD: '#8a8a8a'
+  },
+  night: {
+    fx: 'mote',
+    sky: ['#000003', '#050a1a', '#0a1532', '#102250', '#183266', '#22447e'],
+    sun: '#e6ecf4', glow: null, sunX: 250, sunY: 44, sunR: 12, stars: true,
+    hillFar: '#0e1a34', hillNear: '#060c1a',
+    grass: '#a8a394', grassD: '#68644f', dirt: '#232838', dirtD: '#131824', abyss: '#060b18',
+    brick: '#3e3e3e', brickL: '#666666', mortar: '#101010',
+    enemy: '#cfcabb', enemyD: '#8a8a8a'
+  },
+  cave: {
+    fx: 'spore',
+    sky: ['#000000', '#03100d', '#061e18', '#0a2e25', '#0f4034', '#175246'],
+    sun: '#c4dcd0', glow: '#2e6a58', sunX: 44, sunY: 42, sunR: 10, stars: false,
+    hillFar: '#0a2a22', hillNear: '#04140f',
+    grass: '#5a564a', grassD: '#38352b', dirt: '#1e2e29', dirtD: '#101c18', abyss: '#03100c',
+    brick: '#3a3a3a', brickL: '#5e5e5e', mortar: '#0e0e0e',
+    enemy: '#a8a394', enemyD: '#68644f'
+  },
+  fire: {
+    fx: 'ember',
+    sky: ['#0a0303', '#240808', '#48100a', '#74200c', '#a83a10', '#e0761e'],
+    sun: '#ffe6b0', glow: '#e0761e', sunX: 236, sunY: 50, sunR: 16, stars: false,
+    hillFar: '#3a100a', hillNear: '#1c0806',
+    grass: '#bdb2a0', grassD: '#7a6e5c', dirt: '#3a2622', dirtD: '#22140f', abyss: '#6a2008',
+    brick: '#3a3230', brickL: '#665a54', mortar: '#0e0a08',
+    enemy: '#c8b8a0', enemyD: '#7a6a58'
+  },
+  ice: {
+    fx: 'snow', slip: true,
+    sky: ['#04080a', '#0c1c26', '#173548', '#25526a', '#3a7590', '#6aa8c0'],
+    sun: '#f2f8fa', glow: '#a8d0e0', sunX: 200, sunY: 46, sunR: 18, stars: false,
+    hillFar: '#1f3a4a', hillNear: '#0e1d28',
+    grass: '#e6e2d4', grassD: '#a8a394', dirt: '#3a4650', dirtD: '#25303a', abyss: '#0a1218',
+    brick: '#6e6e6e', brickL: '#9c9c9c', mortar: '#1e1e1e',
+    enemy: '#e6e2d4', enemyD: '#a8a394'
+  }
+};
+
+/* ---------- Pixel sprite-ok (szöveges rajz -> canvas) ---------- */
+const OUTLINE = '#000000';
+function spr(rows, pal, flip, outline) {
+  const h = rows.length, w = rows[0].length;
+  const pad = outline ? 1 : 0;
+  const c = document.createElement('canvas');
+  c.width = w + pad * 2; c.height = h + pad * 2;
+  const g = c.getContext('2d');
+  const at = (x, y) => {
+    if (x < 0 || x >= w || y < 0 || y >= h) return null;
+    const ch = rows[y][flip ? w - 1 - x : x];
+    return (ch !== '.' && pal[ch]) ? pal[ch] : null;
+  };
+  if (outline) {
+    g.fillStyle = outline;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (at(x, y)) continue;
+      if (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) g.fillRect(x + pad, y + pad, 1, 1);
+    }
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const col = at(x, y);
+    if (col) { g.fillStyle = col; g.fillRect(x + pad, y + pad, 1, 1); }
+  }
+  return c;
+}
+const both = (rows, pal, outline) => ({ r: spr(rows, pal, false, outline), l: spr(rows, pal, true, outline) });
+
+const PAL_PLAYER = { b: '#eae6d6', k: '#000000', e: '#000000' };
+const HEAD = [
+  '..bbbbbbbb..',
+  '.bbbbbbbbbb.',
+  'bbbbbbbbbbbb',
+  'bbkkbbbbkkbb',
+  'bbkkbbbbkkbb',
+  'bbbbbbbbbbbb',
+  'bbkkkkkkkkbb',
+  'bbbbbbbbbbbb',
+  '..bbbbbbbb..'
+];
+const BODY = [
+  'bb.bbbbbb.bb',
+  'bb.bbbbbb.bb',
+  'bb.bbkkbb.bb',
+  'bb.bbbbbb.bb',
+  '.bbbbbbbbbb.'
+];
+const BODYJ = [
+  'b.bbbbbbbb.b',
+  'bb.bbbbbb.bb',
+  'bb.bbkkbb.bb',
+  'bb.bbbbbb.bb',
+  '.bbbbbbbbbb.'
+];
+const LEGS = {
+  idle: ['..bbb..bbb..', '..bbb..bbb..', '..bbb..bbb..', '..eee..eee..'],
+  run1: ['.bbbb..bbb..', '.bbb..bbbb..', '..ee..bbb...', '..ee...eee..'],
+  run2: ['..bbb..bbbb.', '..bbb..bbb..', '...bbb..ee..', '..eee...ee..'],
+  jump: ['.bbb....bbb.', '.bb......bb.', 'ee........ee', '............']
+};
+const PF = {
+  idle: both(HEAD.concat(BODY, LEGS.idle), PAL_PLAYER, OUTLINE),
+  run1: both(HEAD.concat(BODY, LEGS.run1), PAL_PLAYER, OUTLINE),
+  run2: both(HEAD.concat(BODY, LEGS.run2), PAL_PLAYER, OUTLINE),
+  jump: both(HEAD.concat(BODYJ, LEGS.jump), PAL_PLAYER, OUTLINE)
+};
+
+const EN_A = [
+  '..bbbbbb....', '.bbbbbbbbbb.', 'bbbbbbbbbbbb', 'bbkkbbbbkkbb', 'bbkkbbbbkkbb',
+  'bbbbbbbbbbbb', 'bbbbbbbbbbbb', 'bbbbbbbbbbbb', 'bb.bb.bb.bb.', '..b...b...b.'
+];
+const EN_B = [
+  '..bbbbbb....', '.bbbbbbbbbb.', 'bbbbbbbbbbbb', 'bbkkbbbbkkbb', 'bbkkbbbbkkbb',
+  'bbbbbbbbbbbb', 'bbbbbbbbbbbb', 'bbbbbbbbbbbb', '.bb.bb.bb.bb', 'b...b...b...'
+];
+function makeEnemySprites(th) {
+  const pal = { b: th.enemy, k: '#000000' };
+  const palFly = { b: '#f5f3ea', k: '#000000' };
+  const palArm = { b: th.enemyD, k: '#000000' };
+  return {
+    a: both(EN_A, pal, OUTLINE), b: both(EN_B, pal, OUTLINE),
+    flyA: both(EN_A, palFly, OUTLINE), flyB: both(EN_B, palFly, OUTLINE),
+    armA: both(EN_A, palArm, OUTLINE), armB: both(EN_B, palArm, OUTLINE)
+  };
+}
+
+const PAL_COIN = { o: '#000000', y: '#cfcabb', l: '#eae6d6' };
+const PAL_GEM = { o: '#000000', y: '#8a8a8a', l: '#e8e4d6' };
+const COIN_SHAPES = [
+  ['..oooo..', '.oyyyyo.', 'oyyllyyo', 'oyylyyyo', 'oyyyyyyo', 'oyyyyyyo', '.oyyyyo.', '..oooo..'],
+  ['..oooo..', '..oyyo..', '.oyllyo.', '.oyyyyo.', '.oyyyyo.', '.oyyyyo.', '..oyyo..', '..oooo..'],
+  ['...oo...', '..oyyo..', '..oyyo..', '..oyyo..', '..oyyo..', '..oyyo..', '..oyyo..', '...oo...']
+];
+const COIN_F = COIN_SHAPES.map(r => spr(r, PAL_COIN, false));
+const GEM_F = COIN_SHAPES.map(r => spr(r, PAL_GEM, false));
+const COIN_SEQ = [0, 1, 2, 1];
+
+const HEART = ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'];
+const HEART_ON = spr(HEART, { h: '#eae6d6' }, false);
+const HEART_OFF = spr(HEART, { h: '#2a2a2a' }, false);
+
+/* ---------- Háttér és csempék (témánként előre legyártva) ---------- */
+function circle(g, cx, cy, r, col) {
+  g.fillStyle = col;
+  for (let y = -r; y < r; y += 2) {
+    const yy = y + 1;
+    const w = Math.round(Math.sqrt(Math.max(0, r * r - yy * yy)) / 2) * 2;
+    g.fillRect(cx - w, cy + y, w * 2, 2);
+  }
+}
+
+function makeBackground(th, width) {
+  width = width || VW;
+  const c = document.createElement('canvas');
+  c.width = width; c.height = VH;
+  const g = c.getContext('2d');
+  const n = th.sky.length, bh = VH / n;
+  for (let i = 0; i < n; i++) { g.fillStyle = th.sky[i]; g.fillRect(0, Math.floor(i * bh), width, Math.ceil(bh) + 1); }
+  for (let b = 1; b < n; b++) {
+    const by = Math.round(b * bh);
+    for (let x = 0; x < width; x += 4) {
+      g.fillStyle = th.sky[b]; g.fillRect(x, by - 2, 2, 2);
+      g.fillStyle = th.sky[b - 1]; g.fillRect(x + 2, by, 2, 2);
+    }
+  }
+  if (th.stars) {
+    let s = 12345;
+    const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    for (let i = 0; i < Math.round(46 * width / VW); i++) {
+      const x = Math.floor(rnd() * width / 2) * 2, y = Math.floor(rnd() * 90 / 2) * 2;
+      g.fillStyle = rnd() < 0.3 ? '#8a8a8a' : '#eae6d6';
+      g.fillRect(x, y, rnd() < 0.25 ? 2 : 1, rnd() < 0.25 ? 2 : 1);
+    }
+  }
+  if (th.glow) { g.globalAlpha = 0.35; circle(g, th.sunX, th.sunY, th.sunR + 6, th.glow); g.globalAlpha = 1; }
+  circle(g, th.sunX, th.sunY, th.sunR, th.sun);
+  if (th.stars) { // holdsarló
+    const yi = Math.min(n - 1, Math.floor((th.sunY - 3) / bh));
+    circle(g, th.sunX + 5, th.sunY - 3, th.sunR - 1, th.sky[yi]);
+  }
+  return c;
+}
+
+function makeTiles(th) {
+  const mk = fn => { const c = document.createElement('canvas'); c.width = T; c.height = T; fn(c.getContext('2d')); return c; };
+  const R = (g, col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  const dirt = g => {
+    R(g, th.dirt, 0, 0, 16, 16);
+    [[2, 5], [10, 3], [6, 9], [13, 11], [3, 13], [9, 14]].forEach(([x, y]) => R(g, th.dirtD, x, y, 2, 2));
+  };
+  return {
+    fill: mk(dirt),
+    top: mk(g => {
+      dirt(g);
+      R(g, th.grass, 0, 0, 16, 4);
+      R(g, th.grassD, 0, 4, 16, 1);
+      [2, 7, 12].forEach(x => R(g, th.grassD, x, 5, 2, 1));
+    }),
+    brick: mk(g => {
+      R(g, th.brick, 0, 0, 16, 16);
+      R(g, th.brickL, 0, 0, 16, 1); R(g, th.brickL, 0, 8, 16, 1);
+      R(g, th.mortar, 0, 7, 16, 1); R(g, th.mortar, 0, 15, 16, 1);
+      R(g, th.mortar, 7, 0, 1, 7); R(g, th.mortar, 3, 8, 1, 7); R(g, th.mortar, 11, 8, 1, 7);
+    }),
+    spike: mk(g => {
+      for (let k = 0; k < 4; k++) {
+        const x = k * 4;
+        R(g, '#eae6d6', x + 1, 7, 2, 3);
+        R(g, '#eae6d6', x, 10, 4, 6);
+        R(g, '#6a6a6a', x + 2, 10, 2, 6);
+        R(g, '#6a6a6a', x + 2, 7, 1, 3);
+      }
+      R(g, '#1c1c1c', 0, 14, 16, 2);
+    }),
+    spring: mk(g => {
+      dirt(g);
+      R(g, th.grass, 0, 0, 16, 4); R(g, th.grassD, 0, 4, 16, 1);
+      R(g, th.mortar, 3, 3, 10, 5);
+      R(g, th.brickL, 4, 4, 8, 1); R(g, th.brickL, 4, 6, 8, 1);
+      R(g, '#eae6d6', 3, 1, 10, 2);
+    })
+  };
+}
+
+/* =====================================================================
+   PÁLYÁK
+   Egy pálya építő-parancsokból áll. A koordináták csempében vannak:
+   x = oszlop (balról), y = sor (fentről, 0..10). A talaj teteje alapból a 9. sor.
+     ground(x0, x1, top)   talaj az x0..x1 oszlopokon (top = első sor, alap 9)
+     wall(x, y0, y1)       függőleges fal
+     block(x, y, n)        téglablokk n darab, vízszintesen
+     spikes(x, y, n)       tüskék
+     coin(x, y, n)         n érme egymás mellett
+     enemy(x, y)           ellenség (y = a sor, ahol áll)
+     check(x, y)           ellenőrzőpont (itt éled újra)
+     goalAt(x, y)          célzászló
+   ===================================================================== */
+function newLevel(name, w, themeKey) {
+  const g = [];
+  for (let y = 0; y < ROWS; y++) g.push(new Array(w).fill('.'));
+  const L = { name, w, g, theme: THEMES[themeKey], themeKey, coinList: [], enemyList: [], checkList: [], platList: [], icicleList: [], rooms: [], keyList: [], powerList: [], starList: [], start: { x: 2, y: 8 }, goal: { x: w - 4, y: 8 } };
+  const put = (x, y, c) => { if (x >= 0 && x < w && y >= 0 && y < ROWS) g[y][x] = c; };
+  L.ground = (x0, x1, top = 9) => { for (let x = x0; x <= x1; x++) for (let y = top; y < ROWS; y++) put(x, y, '#'); return L; };
+  L.wall = (x, y0, y1) => { for (let y = y0; y <= y1; y++) put(x, y, '#'); return L; };
+  L.block = (x, y, n = 1) => { for (let i = 0; i < n; i++) put(x + i, y, 'B'); return L; };
+  L.spikes = (x, y, n = 1) => { for (let i = 0; i < n; i++) put(x + i, y, '^'); return L; };
+  L.spring = (x, y, n = 1) => { for (let i = 0; i < n; i++) put(x + i, y, 'S'); return L; };
+  L.coin = (x, y, n = 1) => { for (let i = 0; i < n; i++) L.coinList.push({ x: x + i, y, val: 10, big: false }); return L; };
+  L.gem = (x, y, n = 1) => { for (let i = 0; i < n; i++) L.coinList.push({ x: x + i, y, val: 50, big: true }); return L; };
+  L.enemy = (x, y) => { L.enemyList.push({ x, y, kind: 'walk' }); return L; };
+  L.flyEnemy = (x, y, range = 3) => { L.enemyList.push({ x, y, kind: 'fly', range }); return L; };
+  L.armored = (x, y) => { L.enemyList.push({ x, y, kind: 'armored' }); return L; };
+  L.shooter = (x, y, dir = -1) => { L.enemyList.push({ x, y, kind: 'shoot', dir }); return L; };
+  L.check = (x, y) => { L.checkList.push({ x, y }); return L; };
+  // 1) Titkos alagút: dombba rejtett járat (F), oldalról besétálsz; bal és jobb oldalról is nyitott.
+  L.secret = (x, w = 4) => {
+    L.ground(x, x + w - 1, 6);
+    for (let i = 0; i < w; i++) put(x + i, 8, 'F');
+    L.rooms.push({ x, y0: 8, w, h: 1, on: false });
+    for (let i = 0; i < w; i++) L.coinList.push({ x: x + i, y: 8, val: 50, big: true, room: L.rooms.length - 1 });
+    return L;
+  };
+  // 2) Beeső kamra: a domb teteje egy ponton hamis (fűvel borított), leesel egy gyémántos kamrába; felfelé kiugrasz.
+  L.secretDrop = (x) => {
+    L.ground(x, x + 3, 6);
+    for (let i = 1; i <= 2; i++) for (let y = 6; y <= 8; y++) put(x + i, y, 'F');
+    L.rooms.push({ x: x + 1, y0: 6, w: 2, h: 3, on: false });
+    const r = L.rooms.length - 1;
+    for (let i = 1; i <= 2; i++) for (let y = 7; y <= 8; y++) L.coinList.push({ x: x + i, y, val: 50, big: true, room: r });
+    return L;
+  };
+  // 3) Láthatatlan lépcső: a levegőben lebegő blokkok (I), csak közelről tűnnek elő; fent gyémántok.
+  L.ghost = (x, y) => { put(x, y, 'I'); return L; };
+  // Kulcs + zárt kamra: a kulcsot meg kell találni, a kamra ajtaja (D) csak vele nyílik
+  L.key = (x, y) => { L.keyList.push({ x, y }); return L; };
+  L.hut = (x) => {
+    L.ground(x, x + 4, 6); put(x, 8, 'D');
+    for (let i = 1; i <= 3; i++) put(x + i, 8, 'F');
+    L.rooms.push({ x: x + 1, y0: 8, w: 3, h: 1, on: true });
+    for (let i = 1; i <= 3; i++) L.coinList.push({ x: x + i, y: 8, val: 50, big: true, room: L.rooms.length - 1 });
+    return L;
+  };
+  // Power-up: 'shield' (időzített védelem), 'feather' (időzített siklás/lassabb esés), 'magnet' (magához húzza az érméket)
+  L.power = (x, y, kind) => { L.powerList.push({ x, y, kind }); return L; };
+  // Csillag: pályánként 3 db, mindet meg kell szerezni a célhoz jutáshoz
+  L.star = (x, y) => { L.starList.push({ x, y }); return L; };
+  // Új akadályok / ellenségek
+  L.crumble = (x0, x1, y) => { L.platList.push({ kind: 'crumble', x: x0 * T, y: y * T, w: (x1 - x0 + 1) * T, h: T }); return L; };
+  L.frog = (x, y) => { L.enemyList.push({ x, y, kind: 'frog' }); return L; };
+  L.bat = (x, y, range = 3) => { L.enemyList.push({ x, y, kind: 'fly', range, dive: 22 }); return L; };
+  // Falról ugrós akna: bal fal (alul nyitott bejárat) + jobb fal; a gyémántok a tetején vannak
+  L.shaft = (x, top) => { L.wall(x, top, 6); L.wall(x + 4, top, 8); return L; };
+  L.boss = (x, y) => { L.enemyList.push({ x, y, kind: 'boss' }); return L; };
+  L.icicle = (x, y = 2) => { L.icicleList.push({ x, y }); return L; };
+  L.goalAt = (x, y) => { L.goal = { x, y }; return L; };
+  // Dinamikus szerkezetek: mozgó / egyirányú / eltűnő platformok (nem a rácsban élnek, külön ütköznek)
+  L.oneway = (x0, x1, y) => { L.platList.push({ kind: 'oneway', x: x0 * T, y: y * T, w: (x1 - x0 + 1) * T, h: T }); return L; };
+  L.blink = (x0, x1, y, period = 200, onLen = 130, phase = 0) => { L.platList.push({ kind: 'blink', x: x0 * T, y: y * T, w: (x1 - x0 + 1) * T, h: T, period, onLen, phase }); return L; };
+  L.moveplat = (x0, x1, y, period = 140, phase = 0) => { L.platList.push({ kind: 'move', axis: 'x', x0: x0 * T, x1: x1 * T, x: x0 * T, y: y * T, w: 2 * T, h: T, period, phase }); return L; };
+  L.moveplatV = (x, y0, y1, period = 140, phase = 0) => { L.platList.push({ kind: 'move', axis: 'y', y0: y0 * T, y1: y1 * T, x: x * T, y: y0 * T, w: 2 * T, h: T, period, phase }); return L; };
+  return L;
+}
+
+const LEVELS = [
+  // 1. pálya – bemelegítés
+  () => newLevel('Hajnal', 84, 'dawn')
+    .ground(0, 17).coin(6, 7, 3).enemy(12, 8)
+    .coin(18, 6, 3)
+    .ground(21, 40).ghost(29, 6).ghost(31, 4).ghost(33, 2).power(31, 3, 'shield').gem(32, 1).gem(34, 1).key(33, 1).star(34, 1).block(25, 6, 3).coin(25, 5, 3).enemy(30, 8).check(33, 8)
+    .spikes(36, 8, 2).coin(35, 6, 4)
+    .block(42, 7, 2).coin(42, 5, 2)
+    .ground(45, 64)
+    .ground(48, 49, 8).ground(50, 51, 7).ground(52, 53, 6).ground(54, 55, 7).ground(56, 57, 8)
+    .coin(50, 5, 2).coin(52, 4, 2).enemy(58, 8).hut(60).star(62, 8)
+    .coin(65, 6, 3).crumble(65, 66, 9).crumble(67, 67, 9).star(66, 6)
+    .ground(68, 83).check(70, 8).frog(73, 8).block(76, 6, 3).coin(76, 5, 3).enemy(78, 8)
+    .goalAt(81, 8),
+
+  // 2. pálya – dupla ugrás
+  () => newLevel('Alkony', 100, 'dusk')
+    .ground(0, 14).coin(5, 7, 3).enemy(10, 8)
+    .coin(15, 7).coin(16, 6).coin(17, 5).coin(18, 6).coin(19, 7)
+    .ground(20, 50).check(22, 8).enemy(25, 8).enemy(29, 8)
+    .spikes(32, 8, 2).coin(31, 6, 4)
+    .shaft(35, 3).gem(35, 2, 5).key(35, 2).star(35, 2).wall(40, 6, 8)
+    .hut(41).block(44, 6, 3).coin(44, 5, 3).enemy(47, 8).star(42, 8)
+    .coin(51, 6, 3).crumble(51, 52, 9).crumble(53, 53, 9)
+    .ground(54, 70).secretDrop(67).power(69, 7, 'magnet').star(68, 7).check(55, 8).block(58, 4, 3).coin(58, 3, 3).bat(60, 6).enemy(62, 8).enemy(66, 8)
+    .block(73, 7, 2).block(77, 6, 2).coin(73, 5, 2).coin(77, 4, 2)
+    .ground(81, 99).check(83, 8).enemy(87, 8).block(89, 5, 2).coin(89, 4, 2).enemy(92, 8)
+    .goalAt(96, 8),
+
+  // 3. pálya – éjszakai kihívás
+  () => newLevel('Éjszaka', 120, 'night')
+    .ground(0, 12).coin(4, 7, 3).enemy(9, 8)
+    .block(14, 7, 1).coin(13, 5, 4)
+    .ground(17, 30).check(18, 8).spikes(20, 8, 2).coin(19, 5, 4).key(21, 5).enemy(25, 8).enemy(28, 8)
+    .coin(31, 5, 3)
+    .ground(34, 52).wall(41, 6, 8).spikes(42, 8, 2).coin(41, 4).coin(43, 5, 2)
+    .check(45, 8).enemy(47, 8).enemy(50, 8)
+    .block(54, 7, 1).power(54, 4, 'feather').block(57, 6, 1).coin(57, 4).star(54, 5)
+    .ground(59, 72).secret(70, 3).star(71, 8).coin(60, 7, 5).enemy(64, 8).spikes(66, 8, 1).block(62, 5, 2).coin(62, 4, 2)
+    .coin(73, 6, 4).crumble(73, 74, 9).crumble(75, 76, 9)
+    .ground(77, 79).ground(80, 81, 8).ground(82, 83, 7).ground(84, 92, 6).coin(84, 4, 5).enemy(88, 5)
+    .ground(93, 119).hut(96).star(97, 8).check(95, 8).spikes(101, 8, 1).enemy(104, 8)
+    .block(105, 5, 3).coin(105, 4, 3).spikes(108, 8, 2).coin(107, 6, 4).enemy(112, 8)
+    .goalAt(116, 8),
+
+  // 4. pálya – Barlang: kőoszlopok, cseppkövek, omló híd; nincs mozgó platform. Fent egy rejtett, lépcsőzetes polc-útvonal kulccsal.
+  () => newLevel('Barlang', 92, 'cave')
+    .ground(0, 45).check(14, 8).coin(5, 7, 3).enemy(10, 8)
+    .oneway(15, 22, 6).gem(16, 4, 2).star(16, 4).icicle(20)
+    .oneway(24, 29, 5).gem(25, 3, 3).power(25, 2, 'shield')
+    .oneway(31, 36, 4).gem(32, 2, 3).key(36, 3)
+    .wall(27, 6, 8).armored(31, 8)
+    .spikes(34, 8, 2).coin(33, 6, 4)
+    .check(37, 8).icicle(38).shooter(43, 8, -1).icicle(41, 3)
+    .crumble(46, 47, 9)
+    .ground(48, 68).block(52, 7, 2).coin(52, 5, 2).icicle(55)
+    .frog(58, 8).check(60, 8)
+    .ghost(61, 6).ghost(63, 4).ghost(65, 3).ghost(67, 2).gem(66, 1, 3).star(66, 1).power(68, 1, 'magnet')
+    .crumble(69, 70, 9)
+    .ground(71, 91).check(72, 8).enemy(75, 8).bat(76, 5, 2).icicle(78)
+    .hut(80).coin(80, 5, 3).star(81, 8)
+    .enemy(86, 8)
+    .goalAt(89, 8),
+
+  // Tűzvilág: lávafolyam – omló hidak, mozgó és eltűnő platformok, béka, denevér, tűzokádó
+  () => newLevel('Tűzvilág', 100, 'fire')
+    .ground(0, 13).coin(4, 7, 3).frog(10, 8)
+    .crumble(14, 15, 9).crumble(16, 17, 9).crumble(18, 19, 9).coin(14, 6, 6)
+    .ground(20, 32).check(21, 8).enemy(26, 8).spikes(29, 8, 2).coin(28, 6, 4)
+    .moveplat(33, 38, 9, 130).gem(34, 6, 3).star(35, 6).key(35, 5)
+    .ground(41, 58).check(43, 8).power(45, 4, 'feather').armored(47, 8).shooter(50, 8, -1).wall(53, 6, 8).coin(45, 6, 4).secretDrop(55).star(56, 7)
+    .blink(59, 60, 8, 200, 130, 0).blink(62, 63, 8, 200, 130, 70).blink(65, 66, 8, 200, 130, 140)
+    .ground(67, 82).check(68, 8).hut(71).star(72, 8).bat(74, 5, 3).frog(76, 8).spikes(78, 8, 2).coin(77, 6, 4)
+    .crumble(83, 84, 9).crumble(85, 86, 9).crumble(87, 88, 9).coin(83, 6, 6)
+    .ground(89, 99).power(90, 8, 'shield').check(90, 8).enemy(94, 8)
+    .goalAt(96, 8),
+
+  // 5. pálya – Jégvilág: csúszós jégmező, hódombok, repedező jéghidak, cseppkő-jégcsapok. Nincs mozgó platform.
+  () => newLevel('Jégvilág', 100, 'ice')
+    .ground(0, 40).coin(4, 7, 3).check(8, 8).enemy(14, 8)
+    .ground(17, 18, 8).ground(19, 22, 7).ground(23, 24, 8).gem(19, 5, 4).power(21, 4, 'magnet').star(19, 5).key(22, 4).coin(17, 6, 8)
+    .icicle(12).icicle(27).check(26, 8).spikes(30, 8, 2).coin(29, 6, 4)
+    .hut(61).star(62, 8).power(32, 7, 'shield').armored(35, 8).icicle(37, 3)
+    .crumble(41, 42, 9).crumble(43, 44, 9).crumble(45, 46, 9).crumble(47, 48, 9).coin(41, 6, 8)
+    .ground(49, 72).check(50, 8).icicle(53).bat(55, 5, 3).frog(58, 8).icicle(60).icicle(66, 3)
+    .secret(68, 4).star(69, 8)
+    .crumble(73, 74, 9).crumble(75, 76, 9).coin(73, 6, 4)
+    .ground(77, 99).check(78, 8).power(80, 7, 'shield').icicle(82).shooter(84, 8, -1).enemy(87, 8)
+    .spikes(90, 8, 2).coin(89, 6, 4).block(93, 6, 3).coin(93, 5, 3).check(94, 8)
+    .goalAt(97, 8),
+
+  // 6. pálya – Jégkirály: csak a főellenség. A zászló addig zárva van, amíg le nem győzöd (és meg nem van mind a 3 csillag).
+  () => newLevel('Jégkirály', 34, 'ice')
+    .ground(0, 33).check(3, 8).power(5, 7, 'shield').power(28, 7, 'shield')
+    .oneway(7, 10, 6).oneway(23, 26, 6)
+    .coin(8, 5, 2).coin(24, 5, 2).star(8, 5).star(24, 5).star(16, 6)
+    .boss(22, 8)
+    .goalAt(30, 8),
+
+  // 7. TITKOS pálya – csak akkor nyílik meg, ha minden előző pályán mind a 3 csillagot megszerezted
+  () => newLevel('Rejtett Világ', 70, 'night')
+    .ground(0, 12).coin(4, 6, 3).star(3, 6)
+    .ghost(13, 6).ghost(15, 4).ghost(17, 2).gem(16, 1, 4).star(20, 1)
+    .ground(22, 34).check(23, 8).enemy(26, 8).armored(29, 8).spikes(31, 8, 1).key(29, 5)
+    .hut(35).star(37, 8)
+    .ground(40, 41, 8).ground(42, 43, 6).ground(44, 45, 4).gem(44, 3, 2)
+    .crumble(47, 48, 9).crumble(49, 50, 9).crumble(51, 52, 9).coin(47, 6, 6)
+    .ground(53, 69).check(54, 8).bat(58, 4, 3).frog(61, 8).armored(64, 8).star(66, 8).coin(66, 6, 3)
+    .goalAt(67, 8)
+];
+
+/* ---------- Hang ---------- */
+let AC = null, muted = store.get('pixelUgro.muted', '0') === '1';
+function audio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  if (AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(f0, f1, dur, type = 'square', vol = 0.05, delay = 0) {
+  if (muted) return;
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+const sfx = {
+  jump: () => { tone(300, 620, 0.14); buzz(10); },
+  djump: () => { tone(450, 920, 0.16); buzz(12); },
+  coin: () => { tone(988, 988, 0.07); tone(1319, 1319, 0.14, 'square', 0.05, 0.07); },
+  stomp: () => { tone(240, 90, 0.16, 'square', 0.07); buzz(18); },
+  hurt: () => { tone(260, 70, 0.3, 'sawtooth', 0.06); buzz(60); },
+  die: () => { tone(420, 90, 0.5, 'sawtooth', 0.06); buzz(140); },
+  check: () => { tone(660, 660, 0.08); tone(880, 880, 0.14, 'square', 0.05, 0.08); buzz(20); },
+  spring: () => { tone(220, 780, 0.16, 'sine', 0.07); tone(780, 1200, 0.1, 'sine', 0.05, 0.1); buzz(25); },
+  shoot: () => tone(520, 260, 0.08, 'square', 0.04),
+  win: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, f, 0.14, 'square', 0.05, i * 0.12)); buzz([30, 40, 30, 40, 60]); },
+  over: () => [392, 330, 262, 196].forEach((f, i) => tone(f, f, 0.22, 'triangle', 0.07, i * 0.2))
+};
+
+
+/* ---------- Zene (kis chiptune szekvenszer, témánként más hangnem) ---------- */
+const MUSIC = {
+  dawn:  { root: 220.0, bpm: 130, bass: [0, -1, 7, -1, 5, -1, 3, -1, 0, -1, 7, -1, 8, -1, 7, -1],
+           lead: [12, -1, 15, -1, 12, -1, 10, -1, 12, -1, 15, 17, 19, -1, 17, -1] },
+  dusk:  { root: 196.0, bpm: 116, bass: [0, -1, 3, -1, 7, -1, 5, -1, 0, -1, 3, -1, 10, -1, 7, -1],
+           lead: [7, -1, 10, -1, 12, -1, 10, -1, 7, -1, 10, 12, 15, -1, 12, -1] },
+  night: { root: 164.8, bpm: 100, bass: [0, -1, 5, -1, 7, -1, 3, -1, 0, -1, 5, -1, 8, -1, 7, -1],
+           lead: [3, -1, 7, -1, 10, -1, 7, -1, 3, -1, 7, 10, 12, -1, 10, -1] },
+  cave:  { root: 146.8, bpm: 92,  bass: [0, -1, -1, 5, -1, -1, 3, -1, 0, -1, -1, 5, -1, 7, -1, -1],
+           lead: [-1, 12, -1, -1, 15, -1, 12, -1, -1, 12, -1, -1, 17, -1, 15, -1] },
+  fire:  { root: 185.0, bpm: 138, bass: [0, -1, 0, 3, -1, 0, 5, -1, 0, -1, 0, 3, -1, 7, 5, -1],
+           lead: [12, -1, 15, 12, -1, 17, -1, 15, 12, -1, 15, 12, 19, -1, 17, -1] },
+  ice:   { root: 174.6, bpm: 122, bass: [0, -1, 7, -1, 5, -1, 9, -1, 0, -1, 7, -1, 5, -1, 7, -1],
+           lead: [12, 15, -1, 12, -1, 16, -1, 15, 12, 15, -1, 12, -1, 19, -1, 15] }
+};
+const MUS = { gain: null, key: null, step: 0, next: 0 };
+function musGain() {
+  const a = audio(); if (!a) return null;
+  if (!MUS.gain) { MUS.gain = a.createGain(); MUS.gain.gain.value = 0.22; MUS.gain.connect(a.destination); }
+  return MUS.gain;
+}
+function musNote(freq, dur, type, vol, t) {
+  const a = audio(); const g = musGain(); if (!a || !g) return;
+  const o = a.createOscillator(), amp = a.createGain();
+  o.type = type; o.frequency.value = freq;
+  amp.gain.setValueAtTime(0, t);
+  amp.gain.linearRampToValueAtTime(vol, t + 0.008);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(amp); amp.connect(g);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function setMusicTheme(key) { if (MUS.key !== key) { MUS.key = key; MUS.step = 0; MUS.next = 0; } }
+function musicTick() {
+  if (muted || SET.music !== 'on') return;
+  const a = audio(); if (!a || !MUS.key) return;
+  if (a.state !== 'running') { MUS.next = 0; return; }   // ne ütemezzünk befagyott órához
+  musGain();
+  const p = MUSIC[MUS.key], stepDur = 60 / p.bpm / 2;
+  if (MUS.next < a.currentTime) MUS.next = a.currentTime + 0.06;
+  while (MUS.next < a.currentTime + 0.18) {
+    const i = MUS.step % 16;
+    const b = p.bass[i]; if (b >= 0) musNote(p.root / 2 * Math.pow(2, b / 12), stepDur * 1.4, 'triangle', 0.5, MUS.next);
+    const l = p.lead[i]; if (l >= 0) musNote(p.root * Math.pow(2, l / 12), stepDur * 0.85, 'square', 0.22, MUS.next);
+    MUS.next += stepDur; MUS.step++;
+  }
+}
+
+/* ---------- Játékállapot ---------- */
+const PROGRESS_KEY = 'pixelUgro.progress';
+let progress = clamp(parseInt(store.get(PROGRESS_KEY, '0'), 10) || 0, 0, LEVELS.length - 1);
+function saveProgress(i) { if (i > progress) { progress = Math.min(i, LEVELS.length - 1); store.set(PROGRESS_KEY, String(progress)); } }
+function maxLives() { return SET.difficulty === 'easy' ? 5 : 3; }
+
+function fmtTime(sec) {
+  sec = Math.max(0, sec);
+  const m = Math.floor(sec / 60), s2 = sec - m * 60;
+  return String(m).padStart(2, '0') + ':' + s2.toFixed(2).padStart(5, '0');
+}
+function bestTime(key) { const v = store.get(key, ''); return v ? parseFloat(v) : null; }
+function saveBestTime(key, sec) {
+  const cur = bestTime(key);
+  if (cur === null || sec < cur) { store.set(key, sec.toFixed(2)); return { best: sec, isNew: true }; }
+  return { best: cur, isNew: false };
+}
+
+const G = {
+  state: 'title', levelIndex: 0, level: null, t: 0,
+  lives: 3, score: 0, levelCoins: 0, totalCoins: 0, bonus: 0,
+  cam: 0, look: 0, banner: 0, hitFlash: 0,
+  shakeMag: 0, shakeDur: 1, shakeT: 0, spawn: { x: 0, y: 0 },
+  playT: 0, levelStart: 0, runStart: 0,
+  player: null, enemies: [], coins: [], checks: [], particles: [], platforms: [], projectiles: [],
+  tiles: null, bg: null, enemySpr: null,
+  pw: { shield: 0, feather: 0, magnet: 0 }, stars: [], starsGot: 0, totalStars: 0,
+  popups: [], combo: 0, comboT: 0, hintMsg: '',
+  best: parseInt(store.get('pixelUgro.best', '0'), 10) || 0
+};
+const input = { left: false, right: false, jump: false, jumpPressed: false };
+const resetInput = () => { input.left = input.right = input.jump = input.jumpPressed = false; };
+
+function newPlayer(spawn) {
+  return { x: spawn.x, y: spawn.y, w: 8, h: 14, vx: 0, vy: 0, onGround: false, coyote: 0, jumps: 1, jumpBuf: 0,
+    facing: 1, anim: 0, inv: 0, stun: 0, dead: false, deadT: 0, final: false, squashT: 0, stretchT: 0, sprung: false, ride: null };
+}
+
+function addShake(mag, dur) {
+  if (mag >= G.shakeMag || G.shakeT <= 0) { G.shakeMag = mag; G.shakeDur = dur; G.shakeT = dur; }
+}
+
+function autoCheckpoints(L, spacing = 14, minGap = 7) {
+  const taken = L.checkList.map(c => c.x);
+  const extra = [];
+  for (let x = 6; x < L.w - 6; x += spacing) {
+    if (L.rooms.some(r => x >= r.x && x < r.x + r.w)) continue;
+    let solidRow = -1;
+    for (let y = 0; y < ROWS; y++) if (L.g[y][x] === '#') { solidRow = y; break; }
+    if (solidRow < 1) continue;
+    const pathRow = solidRow - 1;
+    if (L.g[pathRow][x] === '^') continue;                       // tüske itt
+    if (pathRow > 0 && L.g[pathRow - 1][x] !== '.') continue;     // nincs fejmagasság
+    if ([...taken, ...extra.map(e => e.x)].some(ax => Math.abs(ax - x) < minGap)) continue;
+    if (L.enemyList.some(e => Math.abs(e.x - x) < 3)) continue;   // ne essen pont ellenségre
+    extra.push({ x, y: pathRow });
+  }
+  return extra;
+}
+
+function lowestSurface(L) {
+  let low = 9;
+  for (let y = 1; y < ROWS; y++) for (let x = 0; x < L.w; x++) {
+    const c = L.g[y][x], up = L.g[y - 1][x];
+    if ((c === '#' || c === 'B' || c === 'S') && !(up === '#' || up === 'B' || up === 'S')) low = Math.max(low, y);
+  }
+  return Math.min(low, 10);
+}
+
+function loadLevel(i) {
+  const L = LEVELS[i]();
+  const th = L.theme;
+  G.level = L; G.levelIndex = i;
+  L.pitTop = lowestSurface(L) * T; // a legalacsonyabb járófelület: ez alatt már gödör
+  G.levelStart = G.playT;
+  G.levelScoreStart = G.score;
+  G.tiles = makeTiles(th); G.bg = makeBackground(th, VW_dyn); G.enemySpr = makeEnemySprites(th);
+  setMusicTheme(L.themeKey);
+  G.stars = L.starList.map(s => ({ x: s.x * T + 3, y: s.y * T + 3, got: false }));
+  const starTiles = new Set(L.starList.map(s => s.x + ',' + s.y));
+  G.coins = L.coinList.filter(c => !starTiles.has(c.x + ',' + c.y)).map(c => ({ x: c.x * T + 4, y: c.y * T + 4, got: false, val: c.val || 10, big: !!c.big, room: c.room }));
+  G.enemies = L.enemyList.map((e, k) => {
+    const kind = e.kind || 'walk';
+    if (kind === 'frog') return { kind, x: e.x * T + 2, y: (e.y + 1) * T - 9, by: (e.y + 1) * T - 9, w: 12, h: 9, vx: 1, dir: 1, hop: (k * 17) % 80, alive: true, deadT: 0, anim: k * 7, stunT: 0, hp: 1 };
+    if (kind === 'fly') {
+      const bx = e.x * T + 2;
+      return { kind, x: bx, dive: e.dive || 0, by: e.y * T + 2, y: e.y * T + 2, w: 12, h: 10, baseX: bx, range: e.range || 3,
+        period: 140 + (k % 3) * 30, phase: k * 37, vx: 0, alive: true, deadT: 0, anim: k * 7, stunT: 0, hp: 1 };
+    }
+    if (kind === 'shoot') {
+      return { kind, x: e.x * T + 2, y: (e.y + 1) * T - 9, w: 12, h: 9, vx: 0,
+        dir: e.dir || -1, cooldown: 110, cd: 60 + k * 10, alive: true, deadT: 0, anim: k * 7, stunT: 0, hp: 1 };
+    }
+    if (kind === 'boss') return { kind, x: e.x * T, y: (e.y + 1) * T - 20, w: 24, h: 20, vx: 0.5, alive: true, deadT: 0, anim: 0, stunT: 0, hp: 5, bt: 0 };
+    return { kind, x: e.x * T + 2, y: (e.y + 1) * T - 9, w: 12, h: 9,
+      vx: k % 2 ? -0.35 : 0.35, alive: true, deadT: 0, anim: k * 7, stunT: 0, hp: kind === 'armored' ? 2 : 1 };
+  });
+  G.projectiles = [];
+  G.platforms = L.platList.map(spec => Object.assign({ dx: 0, dy: 0 }, spec));
+  updatePlatforms();
+  const extraChecks = SET.difficulty === 'easy' ? autoCheckpoints(L) : [];
+  G.checks = L.checkList.concat(extraChecks).map(c => ({ x: c.x, y: c.y, on: false }));
+  G.spawn = { x: L.start.x * T + 4, y: (L.start.y + 1) * T - 14 };
+  G.player = newPlayer(G.spawn);
+  G.particles = [];
+  G.fade = 36; initWeather(); G.reveal = new Set();
+  G.keys = L.keyList.map(k => ({ x: k.x, y: k.y, got: false })); G.hasKey = false;
+  G.powers = L.powerList.map(o => ({ x: o.x * T + 3, y: o.y * T + 3, kind: o.kind, got: false }));
+  G.starsGot = 0; G.totalStars = L.starList.length;
+  G.pw = { shield: 0, feather: 0, magnet: 0 }; G.toast = null;
+  G.combo = 0; G.comboT = 0; G.popups = [];
+  G.icicles = L.icicleList.map(c => ({ x: c.x * T + 5, y0: c.y * T, y: c.y * T, vy: 0, st: 0, t: 0 }));
+  G.levelCoins = 0; G.totalCoins = G.coins.length;
+  G.banner = 0;
+  snapCam();
+}
+
+function startGame() {
+  audio();
+  G.lives = maxLives(); G.score = 0; G.runStart = G.playT;
+  loadLevel(0);
+  G.banner = 150;
+  G.state = 'play';
+  resetInput();
+  showOverlay(null);
+}
+
+function continueGame() {
+  audio();
+  G.lives = maxLives(); G.score = 0; G.runStart = G.playT;
+  loadLevel(progress);
+  G.banner = 150;
+  G.state = 'play';
+  resetInput();
+  showOverlay(null);
+}
+
+function nextLevel() {
+  G.lives = Math.min(maxLives(), G.lives + 1);
+  loadLevel(G.levelIndex + 1);
+  G.banner = 150;
+  G.state = 'play';
+  resetInput();
+  showOverlay(null);
+}
+
+/* ---------- Csempék, ütközés ---------- */
+function tileAt(tx, ty) {
+  const L = G.level;
+  if (tx < 0 || tx >= L.w) return '#';
+  if (ty < 0 || ty >= ROWS) return '.';
+  return L.g[ty][tx];
+}
+function isSolid(tx, ty) { const c = tileAt(tx, ty); return c === '#' || c === 'B' || c === 'S' || c === 'I' || c === 'D'; }
+function roomAt(tx) { return G.level.rooms.find(r => tx >= r.x && tx < r.x + r.w); }
+// A rejtett járat (F) a felfedésig tömör földnek látszik
+function looksSolid(tx, ty) { if (isSolid(tx, ty)) return true; const r = tileAt(tx, ty) === 'F' && roomAt(tx); return !!r && !r.on; }
+function blocksEnemy(tx, ty) { return isSolid(tx, ty) || tileAt(tx, ty) === '^' || tileAt(tx, ty) === 'F'; }
+
+function platSolidNow(pl) {
+  if (pl.kind === 'crumble') return pl.st !== 2;
+  if (pl.kind !== 'blink') return true;
+  const ph = (((G.t + pl.phase) % pl.period) + pl.period) % pl.period;
+  return ph < pl.onLen;
+}
+function moveX(e, dx) {
+  e.x += dx;
+  const top = Math.floor(e.y / T), bot = Math.floor((e.y + e.h - 0.01) / T);
+  if (dx > 0) {
+    const c = Math.floor((e.x + e.w - 0.01) / T);
+    for (let ty = top; ty <= bot; ty++) if (isSolid(c, ty)) { e.x = c * T - e.w; e.vx = 0; return; }
+  } else if (dx < 0) {
+    const c = Math.floor(e.x / T);
+    for (let ty = top; ty <= bot; ty++) if (isSolid(c, ty)) { e.x = (c + 1) * T; e.vx = 0; return; }
+  }
+  for (const pl of G.platforms) {
+    if (pl.kind === 'oneway' || !platSolidNow(pl)) continue;
+    if (overlap({ x: e.x, y: e.y, w: e.w, h: e.h }, pl)) {
+      if (dx > 0) e.x = pl.x - e.w; else if (dx < 0) e.x = pl.x + pl.w;
+      e.vx = 0;
+    }
+  }
+}
+function moveY(e, dy) {
+  const preY = e.y;
+  e.y += dy;
+  const l = Math.floor(e.x / T), r = Math.floor((e.x + e.w - 0.01) / T);
+  if (dy > 0) {
+    const c = Math.floor((e.y + e.h - 0.01) / T);
+    for (let tx = l; tx <= r; tx++) {
+      if (isSolid(tx, c)) {
+        if (tileAt(tx, c) === 'S' && e === G.player) { e.y = c * T - e.h; e.vy = SPRING_VY; e.sprung = true; return; }
+        e.y = c * T - e.h; e.vy = 0; e.onGround = true; return;
+      }
+    }
+  } else if (dy < 0) {
+    const c = Math.floor(e.y / T);
+    for (let tx = l; tx <= r; tx++) if (isSolid(tx, c)) { e.y = (c + 1) * T; e.vy = 0; return; }
+  }
+  for (const pl of G.platforms) {
+    if (!platSolidNow(pl)) continue;
+    if (!overlap({ x: e.x, y: e.y, w: e.w, h: e.h }, pl)) continue;
+    if (dy > 0 && preY + e.h <= pl.y + 1) {
+      e.y = pl.y - e.h; e.vy = 0; e.onGround = true;
+      if (e === G.player) e.ride = pl;
+    } else if (dy < 0 && pl.kind !== 'oneway' && preY >= pl.y + pl.h - 1) {
+      e.y = pl.y + pl.h; e.vy = 0;
+    }
+  }
+}
+function hitsSpike(p) {
+  const x0 = Math.floor((p.x + 1) / T), x1 = Math.floor((p.x + p.w - 2) / T);
+  const y0 = Math.floor((p.y + 1) / T), y1 = Math.floor((p.y + p.h - 1) / T);
+  const box = { x: p.x + 1, y: p.y + 1, w: p.w - 2, h: p.h - 2 };
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    if (tileAt(tx, ty) === '^' && overlap(box, { x: tx * T + 2, y: ty * T + 8, w: 12, h: 8 })) return true;
+  }
+  return false;
+}
+
+/* ---------- Pixel csillag a pálya végi minősítéshez ---------- */
+const STAR_ROWS = ['....#....', '....#....', '...###...', '#########', '.#######.', '..#####..', '..##.##..', '.##...##.', '.#.....#.'];
+const STAR_ON = spr(STAR_ROWS, { '#': '#ffe066' }, false).toDataURL();
+const STAR_OFF = spr(STAR_ROWS, { '#': '#3a3a3a' }, false).toDataURL();
+const STAR_ITEM = spr(STAR_ROWS, { '#': '#ffe066' }, false, '#7a5a1a');
+
+/* ---------- Időjárás / hangulat-részecskék (pályánként más) ---------- */
+const WX = {
+  snow:  { n: 55, col: ['#f2f8fa', '#bcd8e4'], vx: [-0.2, 0.15], vy: [0.3, 0.8], blink: 0 },
+  ember: { n: 30, col: ['#f0b070', '#e07a4a'], vx: [-0.12, 0.12], vy: [-0.55, -0.2], blink: 1 },
+  dust:  { n: 28, col: ['#c8a8e0', '#9a78c0'], vx: [0.2, 0.55], vy: [-0.05, 0.12], blink: 0 },
+  mote:  { n: 30, col: ['#cfe0ff', '#8fb0ff'], vx: [-0.1, 0.1], vy: [-0.1, 0.1], blink: 1 },
+  spore: { n: 30, col: ['#7affc8', '#3ad8a0'], vx: [-0.12, 0.12], vy: [-0.25, -0.03], blink: 1 }
+};
+function initWeather() {
+  G.wx = [];
+  const c = WX[G.level.theme.fx]; if (!c) return;
+  const r = (a, b) => a + Math.random() * (b - a);
+  for (let i = 0; i < c.n; i++) G.wx.push({ x: r(0, VW_dyn), y: r(0, VH_dyn), vx: r(...c.vx), vy: r(...c.vy), d: r(0.2, 0.7), ph: r(0, 6.28), c: c.col[i % 2], s: Math.random() < 0.3 ? 2 : 1 });
+}
+function toast(text) { G.toast = { t: 110, text }; }
+function popup(x, y, text, color) { G.popups.push({ x, y, vy: -0.7, life: 54, text, color: color || '#ffffff' }); }
+const SHIELD_DURATION = 900;   // 15 mp
+const FEATHER_DURATION = 720;  // 12 mp
+const MAGNET_DURATION = 900;   // 15 mp
+const POWER_TXT = { shield: 'PAJZS! (15mp)', feather: 'TOLL! SIKLÁS!', magnet: 'ÉRMEMÁGNES!' };
+function updateItems(p) {
+  for (const k of G.keys) if (!k.got && overlap(p, { x: k.x * T + 2, y: k.y * T + 2, w: 12, h: 12 })) { k.got = true; G.hasKey = true; sfx.win(); toast('KULCS!'); }
+  if (G.hasKey) {
+    const ptx = Math.floor((p.x + p.w / 2) / T), pty = Math.floor((p.y + p.h / 2) / T);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) if (tileAt(ptx + dx, pty + dy) === 'D') {
+      G.level.g[pty + dy][ptx + dx] = '.'; G.hasKey = false; sfx.check(); addShake(2, 10); toast('AJTÓ KINYÍLT!');
+      burst((ptx + dx) * T + 8, (pty + dy) * T + 8, 10, ['#ffffff', '#cfcabb'], 1.5, 24);
+    }
+  }
+  for (const o of G.powers) if (!o.got && overlap(p, { x: o.x, y: o.y, w: 10, h: 10 })) {
+    o.got = true; sfx.win(); toast(POWER_TXT[o.kind]);
+    if (o.kind === 'shield') G.pw.shield = SHIELD_DURATION; else if (o.kind === 'feather') G.pw.feather = FEATHER_DURATION; else G.pw.magnet = MAGNET_DURATION;
+    burst(o.x + 5, o.y + 5, 8, ['#ffffff', '#cfcabb'], 1.4, 22);
+  }
+  for (const s of G.stars) if (!s.got && overlap(p, { x: s.x, y: s.y, w: 10, h: 10 })) {
+    s.got = true; G.starsGot++; G.score += 100; sfx.win(); toast('CSILLAG! (' + G.starsGot + '/' + G.totalStars + ')');
+    burst(s.x + 5, s.y + 5, 10, ['#ffe066', '#fff4c2'], 1.7, 26); addShake(2, 10);
+  }
+  if (G.pw.magnet > 0) for (const c of G.coins) {
+    if (c.got || (c.room != null && !G.level.rooms[c.room].on)) continue;
+    const dx = p.x + p.w / 2 - c.x - 4, dy = p.y + p.h / 2 - c.y - 4, d = Math.hypot(dx, dy);
+    if (d < 70 && d > 1) { c.x += dx / d * 2.6; c.y += dy / d * 2.6; }
+  }
+}
+function updateRooms(p) {
+  // láthatatlan blokkok: közelről felfedik magukat
+  const ptx = Math.floor((p.x + p.w / 2) / T), pty = Math.floor((p.y + p.h / 2) / T);
+  for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) if (tileAt(ptx + dx, pty + dy) === 'I') G.reveal.add((ptx + dx) + ',' + (pty + dy));
+  for (const r of G.level.rooms) {
+    if (r.on || p.dead) continue;
+    if (p.x + p.w > r.x * T + 3 && p.x < (r.x + r.w) * T - 3 && p.y + p.h > r.y0 * T + 2 && p.y < (r.y0 + r.h) * T) {
+      r.on = true; G.secretT = 110; sfx.check(); addShake(2, 10);
+      burst((r.x + r.w / 2) * T, 8 * T + 8, 12, ['#ffffff', '#cfcabb'], 1.6, 26);
+    }
+  }
+}
+function updateIcicles(p) {
+  for (const c of G.icicles) {
+    if (c.st === 0 && Math.abs(p.x + p.w / 2 - (c.x + 3)) < 30 && p.y > c.y0) { c.st = 1; c.t = 28; }
+    else if (c.st === 1 && --c.t <= 0) c.st = 2;
+    else if (c.st === 2) {
+      c.vy = Math.min(c.vy + 0.35, 6); c.y += c.vy;
+      if (!p.dead && overlap({ x: c.x, y: c.y, w: 6, h: 12 }, p)) { damage('enemy', c.x); c.st = 3; burst(c.x + 3, c.y + 10, 8, ['#f2f8fa', '#a8d0e0'], 1.4, 20); }
+      else if (isSolid(Math.floor((c.x + 3) / T), Math.floor((c.y + 12) / T))) { c.st = 3; sfx.stomp(); burst(c.x + 3, c.y + 12, 8, ['#f2f8fa', '#a8d0e0'], 1.4, 20); }
+    }
+  }
+}
+function drawKey(x, y) {
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, 6, 6); ctx.fillRect(x + 2, y + 6, 2, 8); ctx.fillRect(x + 4, y + 10, 2, 2); ctx.fillRect(x + 4, y + 13, 2, 1);
+  ctx.fillStyle = '#000'; ctx.fillRect(x + 2, y + 2, 2, 2);
+}
+function drawPowerIcon(kind, x, y) {
+  const R = (c, a, b, w, h) => { ctx.fillStyle = c; ctx.fillRect(x + a, y + b, w, h); };
+  if (kind === 'shield') { R('#fff', 1, 0, 8, 1); R('#fff', 0, 1, 10, 6); R('#fff', 1, 7, 8, 1); R('#fff', 2, 8, 6, 1); R('#fff', 4, 9, 2, 1); R('#3a3a3a', 3, 2, 4, 4); }
+  else if (kind === 'feather') { R('#fff', 5, 0, 2, 3); R('#fff', 4, 2, 3, 3); R('#fff', 3, 4, 3, 3); R('#fff', 2, 6, 3, 3); R('#eae6d6', 0, 8, 5, 2); }
+  else { R('#fff', 0, 0, 3, 8); R('#fff', 7, 0, 3, 8); R('#fff', 0, 7, 10, 3); R('#8a8a8a', 0, 0, 3, 2); R('#8a8a8a', 7, 0, 3, 2); }
+}
+function drawItems(camX) {
+  for (const k of G.keys) if (!k.got) drawKey(Math.round(k.x * T + 5 - camX), Math.round(k.y * T + 1 + Math.sin(G.t / 14) * 1.5));
+  for (const o of G.powers) if (!o.got) drawPowerIcon(o.kind, Math.round(o.x - camX), Math.round(o.y + Math.sin(G.t / 16 + o.x) * 2));
+  for (const s of G.stars) if (!s.got) ctx.drawImage(STAR_ITEM, Math.round(s.x - camX), Math.round(s.y - 1 + Math.sin(G.t / 15 + s.x) * 2));
+  const p = G.player;
+  if (G.pw.shield > 0 && !p.dead && (G.pw.shield > 90 || G.t % 30 < 22)) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.strokeRect(Math.round(p.x - camX) - 2.5, Math.round(p.y) - 2.5, p.w + 5, p.h + 5); }
+}
+function drawIcicles(camX) {
+  for (const c of G.icicles) {
+    if (c.st === 3) continue;
+    const x = Math.round(c.x - camX) + (c.st === 1 ? (G.t % 4 < 2 ? -1 : 1) : 0), y = Math.round(c.y);
+    if (c.st < 2) { ctx.fillStyle = '#a8d0e0'; ctx.fillRect(x - 3, y - 3, 12, 3); }
+    ctx.fillStyle = '#f2f8fa'; ctx.fillRect(x, y, 6, 4); ctx.fillRect(x + 1, y + 4, 4, 4); ctx.fillRect(x + 2, y + 8, 2, 4);
+    ctx.fillStyle = '#a8d0e0'; ctx.fillRect(x + 4, y, 2, 4); ctx.fillRect(x + 4, y + 4, 1, 4);
+  }
+}
+function stepWeather() {
+  if (!G.wx) return;
+  for (const q of G.wx) {
+    q.x += q.vx + Math.sin(G.t / 50 + q.ph) * 0.08; q.y += q.vy;
+    if (q.y > VH_dyn + 2) q.y = -2; else if (q.y < -2) q.y = VH_dyn + 2;
+  }
+}
+function drawWeather() {
+  if (!G.wx || !G.wx.length) return;
+  const blink = WX[G.level.theme.fx].blink, W = VW_dyn;
+  for (const q of G.wx) {
+    const x = ((q.x - G.cam * q.d) % W + W) % W;
+    ctx.globalAlpha = blink ? 0.3 + 0.7 * Math.abs(Math.sin(G.t / 28 + q.ph)) : 0.85;
+    ctx.fillStyle = q.c; ctx.fillRect(Math.round(x), Math.round(q.y), q.s, q.s);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- Részecskék ---------- */
+function burst(x, y, n, cols, spd = 1.5, life = 24) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = (0.4 + Math.random()) * spd;
+    G.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.6, life: life + Math.floor(Math.random() * 8), c: cols[i % cols.length], s: Math.random() < 0.4 ? 2 : 1 });
+  }
+}
+function dust(p, n) { burst(p.x + p.w / 2, p.y + p.h, n, ['#eae6d6', '#9a9a9a'], 0.8, 14); }
+function stepParticles() {
+  for (const q of G.particles) { q.x += q.vx; q.y += q.vy; q.vy += 0.1; q.life--; }
+  G.particles = G.particles.filter(q => q.life > 0);
+}
+
+/* ---------- Játékos ---------- */
+function updatePlayer(p) {
+  if (p.ride) { p.x += p.ride.dx || 0; p.y += p.ride.dy || 0; p.ride = null; }
+  if (input.jumpPressed) { p.jumpBuf = PHYS.buffer; input.jumpPressed = false; }
+  else if (p.jumpBuf > 0) p.jumpBuf--;
+  if (p.inv > 0) p.inv--;
+  if (p.stun > 0) p.stun--;
+
+  let wall = 0;   // fal melletti csúszás / falról ugrás
+  if (!p.onGround && !p.dead) {
+    const y1 = Math.floor((p.y + p.h / 2) / T), y2 = Math.floor((p.y + 3) / T);
+    const lw = isSolid(Math.floor((p.x - 1) / T), y1) || isSolid(Math.floor((p.x - 1) / T), y2);
+    const rw = isSolid(Math.floor((p.x + p.w) / T), y1) || isSolid(Math.floor((p.x + p.w) / T), y2);
+    // Fal-érintés (irányfüggetlen) + kis "fal-coyote": röviddel az elengedés után is lehet még falról ugrani
+    if (lw || rw) { p.wallSide = lw ? -1 : 1; p.wallT = 7; } else if (p.wallT > 0) p.wallT--;
+    // Csúszni csak akkor csúszol, ha a fal felé tartod az irányt
+    if ((lw && input.left) || (rw && input.right)) wall = lw && input.left ? -1 : 1;
+    if (wall && !G.wallHint) { G.wallHint = true; toast('FALRÓL IS UGORHATSZ!'); }
+    if (wall && p.vy > 1 && G.t % 6 === 0) dust(p, 1);
+  } else p.wallT = 0;
+  if (p.wallLock > 0) p.wallLock--;
+  const dir = p.stun > 0 || p.wallLock > 0 ? 0 : (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const accel = p.onGround ? PHYS.accelGround * (G.level.theme.slip ? 0.55 : 1) : PHYS.accelAir;
+  const slip = G.level.theme.slip && p.onGround;   // Jégvilág: csúszós talaj
+  const fric = p.onGround ? PHYS.fricGround * (slip ? 0.2 : 1) : PHYS.fricAir;
+  if (dir) {
+    const a = p.vx * dir < 0 ? accel * PHYS.turnBoost : accel;
+    p.vx = clamp(p.vx + dir * a, -PHYS.maxSpeed, PHYS.maxSpeed);
+    p.facing = dir;
+  } else if (Math.abs(p.vx) <= fric) p.vx = 0;
+  else p.vx -= Math.sign(p.vx) * fric;
+
+  if (p.onGround) { p.coyote = PHYS.coyote; p.jumps = 1; } else if (p.coyote > 0) p.coyote--;
+  // Ha már a talaj szintje alá zuhantál (gödörben vagy), nincs kiugrás: se ugrás, se dupla ugrás
+  if (!p.onGround && !p.dead && p.y + p.h > G.level.pitTop + 20) { p.coyote = 0; p.jumps = 0; p.jumpBuf = 0; }
+
+  if (p.jumpBuf > 0 && p.stun <= 0) {
+    if (p.coyote > 0) {
+      p.vy = PHYS.jump; p.coyote = 0; p.jumpBuf = 0; p.onGround = false; p.stretchT = 6;
+      sfx.jump(); dust(p, 3);
+    } else if (p.wallT > 0 && p.vy > -1) {   // csak lefelé csúszva/eséskor, hogy a felfelé haladó dupla ugrást ne írja felül
+      const side = p.wallSide, toward = side < 0 ? input.left : input.right;
+      p.jumpBuf = 0; p.jumps = 1; p.stretchT = 6;
+      if (toward) {   // a fal felé nyomod az irányt: egyenesen FELFELÉ ugrasz a fal mentén
+        p.vy = -5.2; p.vx = 0; p.wallT = 7;
+      } else {        // faltól elfelé nézel / nem nyomsz irányt: a másik irányba rúgod el magad
+        p.vy = -5.2; p.vx = -side * 2.7; p.facing = -side; p.wallLock = 8; p.wallT = 0;
+      }
+      sfx.jump(); burst(p.x + (side > 0 ? p.w : 0), p.y + p.h / 2, 5, ['#eae6d6', '#d8d4c4'], 1, 12);
+    } else if (p.jumps > 0) {
+      p.vy = PHYS.djump; p.jumps--; p.jumpBuf = 0; p.stretchT = 6;
+      sfx.djump(); burst(p.x + p.w / 2, p.y + p.h, 6, ['#eae6d6', '#d8d4c4'], 1, 14);
+    }
+  }
+
+  let g = PHYS.grav;
+  if (p.vy < 0 && !input.jump) g *= PHYS.cutMult;                            // rövid ugrás, ha elengeded
+  else if (Math.abs(p.vy) < PHYS.apexBand && input.jump) g *= PHYS.apexMult; // lebegés a csúcson
+  else if (p.vy > 0) g *= PHYS.fallMult;                                     // határozottabb esés
+  const gliding = G.pw.feather > 0 && input.jump && p.vy > 0 && !p.onGround;
+  if (gliding) { g *= 0.22; p.vy = Math.min(p.vy, 1.3); }                    // toll: lassú siklás
+  p.vy = Math.min(p.vy + g, gliding ? 1.3 : PHYS.maxFall);
+  if (wall && p.vy > 0.55) p.vy = 0.55;   // fali csúszás: lassan
+
+  const wasGround = p.onGround, vyBefore = p.vy;
+  moveX(p, p.vx);
+  p.onGround = false;
+  p.sprung = false;
+  moveY(p, p.vy);
+  if (p.sprung) { sfx.spring(); dust(p, 6); p.squashT = 0; p.stretchT = 12; }
+  else if (p.onGround && !wasGround && vyBefore > 2.5) { dust(p, 4); p.squashT = 8; }
+
+  if (p.onGround && Math.abs(p.vx) > 0.25) p.anim += Math.abs(p.vx) * 0.12;
+  else if (p.onGround) p.anim = 0;
+  if (p.squashT > 0) p.squashT--;
+  if (p.stretchT > 0) p.stretchT--;
+}
+
+function damage(src, fromX) {
+  const p = G.player;
+  if (p.dead) return;
+  if (src === 'enemy' && p.inv > 0) return;
+  if (G.pw.shield > 0 && src !== 'pit') {   // a pajzs (időzített) kivéd egy találatot
+    G.pw.shield = 0; p.inv = 100; p.spikeImm = 40; G.hitFlash = 6; sfx.hurt(); addShake(3, 10);
+    burst(p.x + p.w / 2, p.y + p.h / 2, 10, ['#ffffff', '#cfcabb'], 1.8, 20);
+    if (src === 'spike') p.vy = -5; else if (src === 'enemy') { p.vy = -3; p.vx = (p.x + p.w / 2 < fromX ? -1 : 1) * 2; }
+    return;
+  }
+  G.lives--; G.hitFlash = 16;
+  if (G.lives <= 0) { die(true); return; }
+  if (src === 'enemy') {
+    sfx.hurt(); addShake(4, 14);
+    p.inv = 100; p.stun = 14; p.vy = -3.4;
+    p.vx = (p.x + p.w / 2 < fromX ? -1 : 1) * 2.3;
+  } else die(false);
+}
+function die(final) {
+  const p = G.player;
+  p.dead = true; p.deadT = 0; p.final = final; p.vy = -5; p.vx = 0;
+  sfx.die(); addShake(6, 20);
+  burst(p.x + p.w / 2, p.y + p.h / 2, 10, ['#f5f3ea', '#eae6d6'], 1.6, 26);
+}
+function updateDead(p) {
+  p.deadT++;
+  p.vy = Math.min(p.vy + PHYS.grav, 8);
+  p.y += p.vy;
+  if (p.deadT >= 60) { if (p.final) gameOver(); else respawn(); }
+}
+function respawn() {
+  G.player = newPlayer(G.spawn);
+  G.player.inv = 90;
+  snapCam();
+}
+
+function pickups(p) {
+  if (p.y > G.level.pitTop + 64) { damage('pit'); return; }
+  if (!(p.spikeImm > 0) && hitsSpike(p)) { damage('spike'); return; }
+
+  for (const c of G.coins) {
+    if (c.got) continue;
+    if (p.x + p.w + 2 > c.x && p.x - 2 < c.x + 8 && p.y + p.h + 2 > c.y && p.y - 2 < c.y + 8) {
+      c.got = true; G.levelCoins++; G.score += c.val || 10;
+      sfx.coin(); burst(c.x + 4, c.y + 4, 6, c.big ? ['#8a8a8a', '#cfcabb'] : ['#cfcabb', '#eae6d6'], c.big ? 1.6 : 1.2, c.big ? 24 : 18);
+    }
+  }
+  for (const k of G.checks) {
+    if (!k.on && overlap(p, { x: k.x * T, y: k.y * T, w: T, h: T })) {
+      k.on = true;
+      G.spawn = { x: k.x * T + 4, y: (k.y + 1) * T - 14 };
+      sfx.check(); burst(k.x * T + 8, k.y * T + 6, 8, ['#d8d4c4', '#eae6d6'], 1.2, 22);
+    }
+  }
+  const gl = G.level.goal;
+  if (overlap(p, { x: gl.x * T + 2, y: (gl.y - 1) * T, w: 12, h: 32 })) {
+    if (G.enemies.some(e => e.kind === 'boss' && e.alive)) { G.hint = 90; G.hintMsg = 'Előbb győzd le a főellenséget!'; }
+    else levelComplete();
+  }
+}
+
+function spawnProjectile(e) {
+  G.projectiles.push({ x: e.x + (e.dir > 0 ? e.w : -5), y: e.y + e.h / 2 - 2, vx: e.dir * 1.5, life: 220 });
+  sfx.shoot();
+}
+function updatePlatforms() {
+  for (const pl of G.platforms) {
+    if (pl.kind === 'move') {
+      const w = triWave(G.t + pl.phase, pl.period);
+      if (pl.axis === 'x') { const nx = pl.x0 + (pl.x1 - pl.x0) * w; pl.dx = nx - pl.x; pl.x = nx; pl.dy = 0; }
+      else { const ny = pl.y0 + (pl.y1 - pl.y0) * w; pl.dy = ny - pl.y; pl.y = ny; pl.dx = 0; }
+    } else if (pl.kind === 'crumble') {
+      pl.dx = 0; pl.dy = 0; const p = G.player;
+      if (!pl.st) { pl.st = 0; pl.t = 0; }
+      if (pl.st === 0 && p && !p.dead && p.onGround && p.x + p.w > pl.x && p.x < pl.x + pl.w && Math.abs(p.y + p.h - pl.y) <= 2) { pl.st = 1; pl.t = 28; }
+      else if (pl.st === 1 && --pl.t <= 0) { pl.st = 2; pl.t = 170; burst(pl.x + pl.w / 2, pl.y + 6, 8, ['#eae6d6', '#8a8a8a'], 1.2, 24); }
+      else if (pl.st === 2 && --pl.t <= 0) pl.st = 0;
+    } else { pl.dx = 0; pl.dy = 0; }
+  }
+}
+function updateProjectiles(p) {
+  for (const pr of G.projectiles) {
+    pr.x += pr.vx; pr.life--;
+    const tx = Math.floor((pr.x + (pr.vx > 0 ? 4 : 0)) / T), ty = Math.floor((pr.y + 2) / T);
+    if (isSolid(tx, ty)) pr.life = 0;
+    if (pr.life > 0 && !p.dead && overlap({ x: pr.x, y: pr.y, w: 5, h: 4 }, p)) { damage('enemy', pr.x); pr.life = 0; }
+  }
+  G.projectiles = G.projectiles.filter(pr => pr.life > 0 && pr.x > G.cam - 20 && pr.x < G.cam + VW_dyn + 20);
+}
+function updateEnemies(p) {
+  for (const e of G.enemies) {
+    if (!e.alive) { e.deadT++; continue; }
+    e.anim++;
+    if (e.stunT > 0) e.stunT--;
+
+    if (e.kind === 'fly') {
+      e.t2 = (e.t2 || 0) + 1;
+      const w = triWave(e.t2 + e.phase, e.period);
+      e.x = e.baseX + e.range * T * (w * 2 - 1);
+      if (e.dive) e.y = e.by + Math.sin(e.t2 / 16 + e.phase) * e.dive;   // denevér: hullámzó repülés
+    } else if (e.kind === 'shoot') {
+      e.cd--;
+      if (e.cd <= 0) { spawnProjectile(e); e.cd = e.cooldown; }
+    } else if (e.kind === 'frog') {
+      if (e.stunT <= 0) {
+        e.hop++; const c = e.hop % 80, air = c < 24;
+        e.y = e.by - (air ? Math.sin(Math.PI * c / 24) * 26 : 0);
+        if (air) {
+          const nx = e.x + e.dir * 1.1, probe = Math.floor((e.dir > 0 ? nx + e.w : nx - 1) / T);
+          if (blocksEnemy(probe, Math.floor((e.by + e.h - 2) / T)) || !isSolid(probe, Math.floor((e.by + e.h + 1) / T))) e.dir = -e.dir; else e.x = nx;
+        }
+        e.vx = e.dir;
+      }
+    } else if (e.stunT <= 0) {
+      if (e.kind === 'boss') {   // 2. fázis (utolsó 2 élet): gyakoribb, kettős jégcsap-zápor
+        const rage = e.hp <= 2;
+        if (++e.bt % (rage ? 70 : 110) === 0) {
+          G.icicles.push({ x: p.x + p.w / 2 - 3, y0: 4, y: 4, vy: 0, st: 1, t: 24 });
+          if (rage) G.icicles.push({ x: p.x + p.w / 2 - 3 + (e.bt % 140 === 0 ? 26 : -26), y0: 4, y: 4, vy: 0, st: 1, t: 34 });
+        }
+      }
+      const dir = Math.sign(e.vx), nx = e.x + e.vx;
+      const probe = Math.floor((dir > 0 ? nx + e.w : nx - 1) / T);
+      const wallRow = Math.floor((e.y + e.h - 2) / T), footRow = Math.floor((e.y + e.h + 1) / T);
+      if (blocksEnemy(probe, wallRow) || !isSolid(probe, footRow)) e.vx = -e.vx; else e.x = nx;
+    }
+
+    if (!p.dead && overlap(p, e)) {
+      const canStomp = e.kind !== 'fly' && p.vy > 0 && p.y + p.h - e.y <= 8;
+      if (canStomp) {
+        if ((e.kind === 'armored' || e.kind === 'boss') && e.hp > 1) {
+          e.hp--; e.stunT = e.kind === 'boss' ? 50 : 40;
+          if (e.kind === 'boss') { e.vx = Math.sign(e.vx || 1) * (0.5 + (5 - e.hp) * 0.14); if (e.hp === 2) { toast('A JÉGKIRÁLY DÜHÖS!'); addShake(4, 20); } }
+          p.y = e.y - p.h; p.vy = -4.6; p.jumps = 1; p.coyote = 0;
+          sfx.stomp(); G.freeze = 3; addShake(1.5, 6);
+          burst(e.x + 6, e.y + 6, 6, [G.level.theme.enemy, '#eae6d6'], 1, 14);
+        } else {
+          e.alive = false; e.deadT = 0;
+          p.y = e.y - p.h; p.vy = input.jump ? -5.6 : -4.2; p.jumps = 1; p.coyote = 0;
+          const base = e.kind === 'boss' ? 500 : e.kind === 'armored' ? 80 : 50;
+          G.combo = G.comboT > 0 ? G.combo + 1 : 1; G.comboT = 100;
+          const mult = Math.min(G.combo, 5), pts = base * mult;
+          G.score += pts;
+          popup(e.x + 4, e.y - 4, '+' + pts + (mult > 1 ? '  x' + mult : ''), mult > 1 ? '#ffe066' : '#ffffff');
+          sfx.stomp(); G.freeze = 4; addShake(2.5, 9);
+          if (e.kind === 'boss') { addShake(6, 30); sfx.win(); for (let k = 0; k < 3; k++) burst(e.x + 12, e.y + 10, 10, ['#f2f8fa', '#a8d0e0'], 2, 28); }
+          burst(e.x + 6, e.y + 6, 8, [G.level.theme.enemy, '#eae6d6'], 1.4, 20);
+        }
+      } else damage('enemy', e.x + e.w / 2);
+    }
+  }
+  G.enemies = G.enemies.filter(e => e.alive || e.deadT < 24);
+}
+
+/* ---------- Kamera ---------- */
+function snapCam() {
+  const p = G.player, L = G.level;
+  G.cam = clamp(p.x + p.w / 2 - VW_dyn / 2, 0, Math.max(0, L.w * T - VW_dyn));
+  G.look = 0;
+}
+function updateCam() {
+  const p = G.player, L = G.level, max = Math.max(0, L.w * T - VW_dyn);
+  // Előretekintés a sebességből, lassan simítva: irányváltáskor nem rángat a kamera
+  const wantLook = clamp(p.vx / PHYS.maxSpeed, -1, 1) * 18;
+  G.look += (wantLook - G.look) * 0.04;
+  const target = clamp(p.x + p.w / 2 - VW_dyn / 2 + G.look, 0, max);
+  const diff = target - G.cam;
+  const dead = (target <= 0 || target >= max) ? 0 : 8; // kis holtsáv: apró mozgásra nem mozdul a kamera
+  if (Math.abs(diff) > dead) G.cam += (diff - Math.sign(diff) * dead) * 0.12;
+}
+
+/* ---------- Pálya vége, játék vége ---------- */
+function finishRun() {
+  const nb = G.score > G.best;
+  if (nb) { G.best = G.score; store.set('pixelUgro.best', String(G.best)); }
+  return nb;
+}
+function hiddenUnlocked() {
+  for (let i = 0; i < LEVELS.length - 1; i++) if ((parseInt(store.get('pixelUgro.stars.L' + i), 10) || 0) < 3) return false;
+  return true;
+}
+function levelComplete() {
+  sfx.win();
+  G.bonus = 250 + G.lives * 100;
+  G.score += G.bonus;
+  saveProgress(G.levelIndex + 1);
+  const levelSec = (G.playT - G.levelStart) / 60;
+  const lvlBest = saveBestTime('pixelUgro.time.L' + G.levelIndex, levelSec);
+  const stars = G.totalStars ? G.starsGot : 3;
+  const skey = 'pixelUgro.stars.L' + G.levelIndex, prevStars = parseInt(store.get(skey), 10) || 0;
+  if (stars > prevStars) store.set(skey, String(stars));
+  const levelScore = G.score - (G.levelScoreStart || 0);
+  const scKey = 'pixelUgro.score.L' + G.levelIndex, prevScore = parseInt(store.get(scKey), 10) || 0;
+  if (levelScore > prevScore) store.set(scKey, String(levelScore));
+  const isLast = G.levelIndex === LEVELS.length - 1;
+  const nextLockedHidden = G.levelIndex === LEVELS.length - 2 && !hiddenUnlocked();
+  if (isLast || nextLockedHidden) {
+    G.state = 'win';
+    const nb = finishRun();
+    const totalSec = (G.playT - G.runStart) / 60;
+    const runBest = saveBestTime('pixelUgro.time.total', totalSec);
+    $('wnScore').textContent = G.score;
+    $('wnNew').hidden = !nb;
+    $('wnTime').textContent = fmtTime(totalSec);
+    $('wnBestTime').textContent = fmtTime(runBest.best) + (runBest.isNew ? ' (új rekord!)' : '');
+    G.shareInfo = { title: 'Pixel Ugró — végigvitte!', lines: ['Pontszám: ' + G.score, 'Idő: ' + fmtTime(totalSec)] };
+    showOverlay('p-win', 700);
+  } else {
+    G.state = 'levelclear';
+    $('clCoins').textContent = G.levelCoins + ' / ' + G.totalCoins;
+    $('clStars').innerHTML = [0, 1, 2].map(i => '<img alt="" src="' + (i < stars ? STAR_ON : STAR_OFF) + '">').join('');
+    $('clBonus').textContent = '+' + G.bonus;
+    $('clScore').textContent = G.score;
+    $('clTime').textContent = fmtTime(levelSec);
+    $('clBestTime').textContent = fmtTime(lvlBest.best) + (lvlBest.isNew ? ' (új rekord!)' : '');
+    G.shareInfo = { title: 'Pixel Ugró — ' + G.level.name, lines: ['Pontszám: ' + G.score, 'Pálya ideje: ' + fmtTime(levelSec)] };
+    showOverlay('p-clear', 700);
+  }
+}
+function gameOver() {
+  sfx.over();
+  G.state = 'gameover';
+  const nb = finishRun();
+  $('goScore').textContent = G.score;
+  $('goNew').hidden = !nb;
+  G.shareInfo = { title: 'Pixel Ugró — próbálkozás', lines: ['Pontszám: ' + G.score, 'Pálya: ' + G.level.name] };
+  showOverlay('p-over', 700);
+}
+
+/* ---------- Frissítés (60 Hz) ---------- */
+function update() {
+  G.t++;
+  stepParticles(); stepWeather();
+  if (G.t % 24 === 0 && G.coins && G.coins.length) {
+    const c = G.coins[Math.floor(Math.random() * G.coins.length)];
+    if (!c.got && c.room == null && c.x > G.cam - 4 && c.x < G.cam + VW_dyn) burst(c.x + 2 + Math.random() * 5, c.y + 2 + Math.random() * 5, 1, ['#ffffff'], 0.15, 12);
+  }
+  if (G.fade > 0) G.fade--;
+  if (G.freeze > 0) { G.freeze--; return; } // ellenség-eltiprás: rövid "hitstop"
+  musicTick();
+  if (G.shakeT > 0) G.shakeT--;
+  if (G.hitFlash > 0) G.hitFlash--;
+  if (G.state !== 'play') return;
+  G.playT++;
+  const p = G.player;
+  if (G.banner > 0) G.banner--;
+  if (G.hint > 0) G.hint--;
+  if (G.secretT > 0) G.secretT--;
+  if (G.pw.shield > 0) G.pw.shield--;
+  if (G.pw.feather > 0) G.pw.feather--;
+  if (G.pw.magnet > 0) G.pw.magnet--;
+  if (G.toast && G.toast.t > 0) G.toast.t--;
+  if (G.comboT > 0) { if (--G.comboT <= 0) G.combo = 0; }
+  for (const q of G.popups) { q.x += q.vx || 0; q.y += q.vy; q.life--; }
+  G.popups = G.popups.filter(q => q.life > 0);
+  if (p.spikeImm > 0) p.spikeImm--;
+  updatePlatforms();
+  if (p.dead) { updateDead(p); return; }
+  updatePlayer(p);
+  if (!p.dead) { pickups(p); updateRooms(p); updateItems(p); }
+  if (G.state === 'play' && !G.player.dead) { updateEnemies(G.player); updateProjectiles(G.player); updateIcicles(G.player); }
+  updateCam();
+}
+
+/* ---------- Rajzolás ---------- */
+function hills(camX, factor, base, a1, a2, col) {
+  ctx.fillStyle = col;
+  const off = Math.floor(camX * factor);
+  for (let x = 0; x < VW_dyn; x += 4) {
+    const wx = x + off;
+    let h = Math.sin(wx * 0.021) * a1 + Math.sin(wx * 0.047 + 1.7) * a2;
+    h = Math.round(h / 4) * 4;
+    const top = base - h;
+    ctx.fillRect(x, top, 4, VH - top);
+  }
+}
+
+function txt(s, x, y, col, align, size) {
+  ctx.font = (size || 8) + 'px "Press Start 2P", monospace';
+  ctx.textAlign = align || 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#000000'; ctx.fillText(s, x + 1, y + 1);
+  ctx.fillStyle = col || '#eae6d6'; ctx.fillText(s, x, y);
+}
+
+function drawGoal(camX) {
+  const gl = G.level.goal, x = gl.x * T - camX, y = (gl.y - 1) * T;
+  ctx.fillStyle = '#eae6d6'; ctx.fillRect(x + 7, y, 2, 32);
+  ctx.fillStyle = '#d8d4c4'; ctx.fillRect(x + 6, y - 3, 4, 4);
+  for (let i = 0; i < 9; i++) {
+    const w = Math.round(Math.sin(G.t / 9 + i * 0.7) * 1.2);
+    ctx.fillStyle = i % 3 === 2 ? '#6a6a6a' : '#3a3a3a';
+    ctx.fillRect(x + 9 + i, y + 2 + w, 1, 8 - Math.floor(i * 0.7));
+  }
+}
+function drawBoss(e, camX) {
+  const x = Math.round(e.x - camX), y = Math.round(e.y), f = e.vx < 0 ? -1 : 1, step = Math.floor(e.anim / 10) % 2;
+  const R = (c, a, b, w, h) => { ctx.fillStyle = c; ctx.fillRect(x + a, y + b, w, h); };
+  R('#a8d0e0', 0, 4, 24, 14); R('#f2f8fa', 2, 6, 20, 6); R('#6aa8c0', 0, 14, 24, 4);       // test
+  R('#f2f8fa', 2, 0, 4, 4); R('#f2f8fa', 10, -2, 4, 6); R('#f2f8fa', 18, 0, 4, 4);        // korona
+  const eye = e.hp <= 2 ? '#ff5a4a' : '#0a0a0a';
+  R(eye, f > 0 ? 12 : 4, 8, 4, 4); R(eye, f > 0 ? 18 : 10, 8, 4, 4);          // szemek
+  R('#f2f8fa', 3 + step * 2, 18, 6, 2); R('#f2f8fa', 15 - step * 2, 18, 6, 2);            // lábak
+}
+function drawCheck(k, camX) {
+  const x = k.x * T - camX, y = k.y * T;
+  ctx.fillStyle = '#cfcabb'; ctx.fillRect(x + 7, y + 3, 2, 13);
+  const w = k.on ? Math.round(Math.sin(G.t / 8)) : 0;
+  ctx.fillStyle = k.on ? '#d8d4c4' : '#4a4a4a';
+  ctx.fillRect(x + 9, y + 3 + w, 6, 4);
+}
+
+let titleBgCache = null;
+function getTitleBg() {
+  if (!titleBgCache || titleBgCache.width !== VW_dyn) titleBgCache = makeBackground(THEMES.night, VW_dyn);
+  return titleBgCache;
+}
+function renderTitle() {
+  const th = THEMES.night;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(getTitleBg(), 0, 0);
+  hills(0, 0.1, 118, 14, 7, th.hillFar);
+  hills(0, 0.22, 140, 10, 5, th.hillNear);
+  const groundY = VH - 26;
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, groundY, VW_dyn, Math.max(VH_dyn, VH) - groundY);
+  ctx.fillStyle = th.hillNear;
+  ctx.fillRect(0, groundY, VW_dyn, 3);
+  const tombX = [VW_dyn * 0.13, VW_dyn * 0.85];
+  for (const txf of tombX) {
+    const tx = Math.round(txf);
+    ctx.fillStyle = '#2e2e2e';
+    ctx.fillRect(tx - 6, groundY - 12, 12, 12);
+    ctx.fillRect(tx - 4, groundY - 17, 8, 6);
+  }
+  if (G.enemySpr) {
+    const gx = VW_dyn * 0.74 + Math.sin(G.t * 0.02) * 14, gy = 26 + Math.sin(G.t * 0.03) * 5;
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(G.enemySpr.flyA.r, Math.round(gx), Math.round(gy));
+    ctx.globalAlpha = 1;
+  }
+  const bob = Math.round(Math.sin(G.t * 0.05) * 2);
+  const img = PF.idle.r, scale = 3;
+  ctx.drawImage(img, Math.round(VW_dyn / 2 - img.width * scale / 2), groundY - img.height * scale + bob, img.width * scale, img.height * scale);
+}
+function render() {
+  if (G.state === 'title') { renderTitle(); return; }
+  const L = G.level, th = L.theme, camX = Math.round(G.cam);
+  ctx.textAlign = 'left';
+  let shX = 0, shY = 0;
+  if (G.shakeT > 0) {
+    const k = G.shakeMag * (G.shakeT / G.shakeDur);
+    shX = Math.round((Math.random() * 2 - 1) * k);
+    shY = Math.round((Math.random() * 2 - 1) * k * 0.6);
+  }
+  ctx.save();
+  ctx.translate(shX, shY - VIEW_TOP);
+  ctx.drawImage(G.bg, 0, 0);
+  hills(camX, 0.15, 120, 16, 8, th.hillFar);
+  hills(camX, 0.35, 142, 12, 6, th.hillNear);
+  hills(camX, 0.6, 140, 6, 3, th.abyss || th.hillNear);
+
+  const x0 = Math.max(0, Math.floor(camX / T)), x1 = Math.min(L.w - 1, x0 + VW_dyn / T + 1);
+  for (let ty = 0; ty < ROWS; ty++) {
+    for (let tx = x0; tx <= x1; tx++) {
+      const c = L.g[ty][tx];
+      if (c === '.') continue;
+      const dx = tx * T - camX, dy = ty * T;
+      if (c === 'D') { ctx.drawImage(G.tiles.brick, dx, dy); ctx.fillStyle = '#ffffff'; ctx.fillRect(dx + 6, dy + 4, 4, 4); ctx.fillRect(dx + 7, dy + 8, 2, 4); }
+      else if (c === 'I') { if (G.reveal.has(tx + ',' + ty)) ctx.drawImage(G.tiles.brick, dx, dy); }
+      else if (c === 'F') { if (looksSolid(tx, ty)) ctx.drawImage(looksSolid(tx, ty - 1) ? G.tiles.fill : G.tiles.top, dx, dy); else { const rm = roomAt(tx); if (!(rm && rm.h > 1 && ty === rm.y0)) { ctx.fillStyle = th.abyss || '#101010'; ctx.fillRect(dx, dy, T, T); } } }
+      else if (c === '#') ctx.drawImage(looksSolid(tx, ty - 1) ? G.tiles.fill : G.tiles.top, dx, dy);
+      else if (c === 'B') ctx.drawImage(G.tiles.brick, dx, dy);
+      else if (c === '^') ctx.drawImage(G.tiles.spike, dx, dy);
+      else if (c === 'S') ctx.drawImage(G.tiles.spring, dx, dy);
+    }
+  }
+  const viewBottom = VIEW_TOP + VH_dyn + 8, x1i = Math.floor(x1);
+  // A talaj a pálya alja alatt is folytatódik (csak ahol van talaj) – a gödrök helyén sötét szakadék
+  for (let ty = ROWS; ty * T < viewBottom; ty++) {
+    for (let tx = x0; tx <= x1i; tx++) if (isSolid(tx, ROWS - 1)) ctx.drawImage(G.tiles.fill, tx * T - camX, ty * T);
+  }
+  const pitGrad = ctx.createLinearGradient(0, L.pitTop, 0, L.pitTop + 72);
+  pitGrad.addColorStop(0, th.abyss || '#202020'); pitGrad.addColorStop(1, '#000');
+  ctx.fillStyle = pitGrad;
+  for (let tx = x0; tx <= x1i; tx++) {
+    if (isSolid(tx, ROWS - 1)) continue;
+    let e = tx; while (e + 1 <= x1i && !isSolid(e + 1, ROWS - 1)) e++;
+    ctx.fillRect(tx * T - camX, L.pitTop, (e - tx + 1) * T, viewBottom - L.pitTop);
+    tx = e;
+  }
+
+  for (const pl of G.platforms) {
+    if (!platSolidNow(pl)) continue;
+    const dx = Math.round(pl.x - camX) + (pl.kind === 'crumble' && pl.st === 1 ? (G.t % 4 < 2 ? -1 : 1) : 0), dy = Math.round(pl.y);
+    const flick = pl.kind === 'blink' && (((G.t + pl.phase) % pl.period) % pl.onLen) > pl.onLen - 24 && Math.floor(G.t / 4) % 2 === 0;
+    if (flick) continue;
+    ctx.fillStyle = pl.kind === 'oneway' || pl.kind === 'crumble' ? th.brickL : th.brick;
+    ctx.fillRect(dx, dy, pl.w, pl.h);
+    ctx.fillStyle = th.mortar;
+    ctx.fillRect(dx, dy, pl.w, 2);
+    for (let seg = 0; seg < pl.w; seg += 8) ctx.fillRect(dx + seg, dy + 2, 1, pl.h - 2);
+  }
+
+  for (const k of G.checks) drawCheck(k, camX);
+  drawIcicles(camX);
+  drawItems(camX);
+  drawGoal(camX);
+
+  const cfi = COIN_SEQ[Math.floor(G.t / 8) % 4];
+  for (const c of G.coins) {
+    if (c.got || (c.room != null && !G.level.rooms[c.room].on)) continue;
+    const bob = Math.round(Math.sin((G.t + c.x) / 18));
+    ctx.drawImage(c.big ? GEM_F[cfi] : COIN_F[cfi], Math.round(c.x - camX), c.y + bob);
+  }
+
+  for (const e of G.enemies) {
+    if (e.alive) {
+      if (e.stunT > 0 && Math.floor(e.stunT / 4) % 2 === 0) continue; // páncélos: villog kábultan
+      if (e.kind === 'boss') { drawBoss(e, camX); continue; }
+      let sA = G.enemySpr.a, sB = G.enemySpr.b;
+      if (e.kind === 'fly') { sA = G.enemySpr.flyA; sB = G.enemySpr.flyB; }
+      else if (e.kind === 'armored') { sA = G.enemySpr.armA; sB = G.enemySpr.armB; }
+      const f = Math.floor(e.anim / 12) % 2 ? sB : sA;
+      const facing = e.kind === 'fly' ? Math.sign(e.x - e.baseX || 1) : e.kind === 'shoot' ? -e.dir : e.vx;
+      const bob = e.kind === 'fly' ? Math.round(Math.sin(e.t2 / 10) * 2) : 0;
+      ctx.drawImage(facing < 0 ? f.l : f.r, Math.round(e.x - 1 - camX), Math.round(e.y - 2 + bob));
+    } else {
+      ctx.drawImage(G.enemySpr.a.r, 1, 1, 12, 10, Math.round(e.x - camX), Math.round(e.y + 5), 12, 4);
+    }
+  }
+  for (const pr of G.projectiles) {
+    ctx.fillStyle = '#cfcabb';
+    ctx.fillRect(Math.round(pr.x - camX), Math.round(pr.y), 5, 4);
+    ctx.fillStyle = '#eae6d6';
+    ctx.fillRect(Math.round(pr.x - camX) + (pr.vx > 0 ? 3 : 0), Math.round(pr.y) + 1, 2, 2);
+  }
+
+  const p = G.player;
+  const blink = p.inv > 0 && Math.floor(p.inv / 4) % 2 === 0;
+  if (!blink) {
+    let fr = PF.idle;
+    if (p.dead || !p.onGround) fr = PF.jump;
+    else if (Math.abs(p.vx) > 0.25) {
+      // 4 fázisú futóciklus (lépés – vissza középre – lépés – vissza középre) simábbnak hat, mint a 2 fázisú
+      const cyc = Math.floor(p.anim) % 4;
+      fr = cyc === 0 ? PF.run1 : cyc === 2 ? PF.run2 : PF.idle;
+    }
+    const img = p.facing < 0 ? fr.l : fr.r;
+    const dx = Math.round(p.x - 3 - camX), dy = Math.round(p.y - 5);
+    let sx = 1, sy = 1;
+    if (p.squashT > 0) { const k = p.squashT / 8; sx = 1 + 0.22 * k; sy = 1 - 0.2 * k; }
+    else if (p.stretchT > 0) { const k = p.stretchT / 6; sx = 1 - 0.12 * k; sy = 1 + 0.14 * k; }
+    if (sx !== 1 || sy !== 1) {
+      ctx.save();
+      ctx.translate(dx + img.width / 2, dy + img.height);
+      ctx.scale(sx, sy);
+      ctx.drawImage(img, -img.width / 2, -img.height);
+      ctx.restore();
+    } else ctx.drawImage(img, dx, dy);
+  }
+
+  for (const q of G.particles) {
+    ctx.fillStyle = q.c;
+    ctx.fillRect(Math.round(q.x - camX), Math.round(q.y), q.s, q.s);
+  }
+  for (const q of G.popups) {
+    ctx.globalAlpha = Math.min(1, q.life / 20);
+    txt(q.text, Math.round(q.x - camX), Math.round(q.y), q.color, 'center', 7);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  drawWeather();
+  if (G.hitFlash > 0) {
+    ctx.fillStyle = 'rgba(255,40,60,' + (0.32 * G.hitFlash / 16) + ')';
+    ctx.fillRect(0, 0, VW_dyn, VH_dyn);
+  }
+
+  if (G.fade > 0) { ctx.fillStyle = 'rgba(0,0,0,' + (G.fade / 36) + ')'; ctx.fillRect(0, 0, VW_dyn, VH_dyn); }
+  if (G.state !== 'title') {
+    for (let i = 0; i < 3; i++) ctx.drawImage(i < G.lives ? HEART_ON : HEART_OFF, HUD_L + i * 9, HUD_T);
+    ctx.drawImage(COIN_F[0], HUD_L + 34, HUD_T - 1);
+    txt(G.levelCoins + '/' + G.totalCoins, HUD_L + 45, HUD_T);
+    if (G.totalStars > 0) { ctx.drawImage(STAR_ITEM, HUD_L + 80, HUD_T - 2); txt(G.starsGot + '/' + G.totalStars, HUD_L + 92, HUD_T); }
+    let ix = HUD_L;
+    if (G.hasKey) { drawKey(ix, HUD_T + 11); ix += 12; }
+    if (G.pw.shield > 0 && (G.pw.shield > 120 || G.t % 20 < 10)) { drawPowerIcon('shield', ix, HUD_T + 11); ix += 13; }
+    if (G.pw.feather > 0 && (G.pw.feather > 120 || G.t % 20 < 10)) { drawPowerIcon('feather', ix, HUD_T + 11); ix += 13; }
+    if (G.pw.magnet > 0 && (G.pw.magnet > 120 || G.t % 20 < 10)) { drawPowerIcon('magnet', ix, HUD_T + 11); ix += 13; }
+    txt(String(G.score).padStart(6, '0'), VW_dyn / 2, HUD_T, '#d8d4c4', 'center');
+    txt(fmtTime((G.playT - G.levelStart) / 60), VW_dyn / 2, HUD_T + 10, '#eae6d6', 'center');
+    if (G.combo > 1 && G.comboT > 0) txt('KOMBÓ x' + Math.min(G.combo, 5), VW_dyn / 2, HUD_T + 20, '#ffe066', 'center', 7);
+  }
+  const bs = G.enemies && G.enemies.find(e => e.kind === 'boss' && e.alive);
+  if (bs && bs.x > G.cam - 30 && bs.x < G.cam + VW_dyn && G.state !== 'title') {
+    for (let i = 0; i < 5; i++) { ctx.fillStyle = i < bs.hp ? '#ffffff' : '#3a3a3a'; ctx.fillRect(Math.round(VW_dyn / 2 - 20 + i * 8), HUD_T + 22, 6, 4); }
+  }
+  if (G.hint > 0) txt(G.hintMsg || 'Előbb győzd le a főellenséget!', VW_dyn / 2, 60, '#ffffff', 'center');
+  if (G.secretT > 0) txt('TITKOS JÁRAT!', VW_dyn / 2, 60, '#ffffff', 'center');
+  if (G.toast && G.toast.t > 0) txt(G.toast.text, VW_dyn / 2, 74, '#ffffff', 'center');
+  if (G.banner > 0) {
+    ctx.globalAlpha = Math.min(1, G.banner / 30);
+    txt('PÁLYA ' + (G.levelIndex + 1), VW_dyn / 2, 66, '#d8d4c4', 'center', 16);
+    txt(L.name, VW_dyn / 2, 90, '#eae6d6', 'center', 8);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* ---------- Menük ---------- */
+function showOverlay(name, delay) {
+  const ov = $('overlay');
+  document.body.classList.toggle('menu', !!name);
+  document.body.classList.toggle('show-touch', name === 'p-settings');
+  document.querySelectorAll('.panel').forEach(p => { p.hidden = p.id !== name; });
+  $('hud').hidden = (name === 'p-title' || name === 'p-levels');
+  ov.hidden = !name;
+  if (!name) return;
+  const panel = $(name), btn = panel.querySelector('.primary');
+  if (name === 'p-title') {
+    $('bestLine').textContent = G.best > 0 ? 'Rekord: ' + G.best : '';
+    const cbtn = $('btnContinue');
+    cbtn.hidden = progress <= 0;
+    $('btnLevels').hidden = progress <= 0;
+    if (!cbtn.hidden) cbtn.textContent = 'Folytatás (' + LEVELS[progress]().name + ')';
+  }
+  if (delay) {
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.disabled = false;
+      if (!ov.hidden && !panel.hidden) btn.focus({ preventScroll: true });
+    }, delay);
+  } else btn.focus({ preventScroll: true });
+}
+
+function togglePause() {
+  if (G.state === 'play') { G.state = 'paused'; resetInput(); showOverlay('p-pause'); }
+  else if (G.state === 'paused') resume();
+}
+function resume() { G.state = 'play'; resetInput(); showOverlay(null); }
+function goToMainMenu() { G.state = 'title'; resetInput(); showOverlay('p-title'); }
+
+$('btnStart').onclick = startGame;
+$('btnContinue').onclick = continueGame;
+function openLevels() {
+  const box = $('lvList'); box.innerHTML = '';
+  const hiddenIdx = LEVELS.length - 1, hiddenOk = hiddenUnlocked();
+  LEVELS.forEach((mk, i) => {
+    const isHidden = i === hiddenIdx;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn alt';
+    b.disabled = isHidden ? !hiddenOk : i > progress;
+    const st = parseInt(store.get('pixelUgro.stars.L' + i), 10) || 0;
+    const stars = [0, 1, 2].map(k => '<img alt="" src="' + (k < st ? STAR_ON : STAR_OFF) + '">').join('');
+    const bt = bestTime('pixelUgro.time.L' + i);
+    const bs = parseInt(store.get('pixelUgro.score.L' + i), 10) || 0;
+    const played = !b.disabled && (bt !== null || bs > 0);
+    const record = played ? '<span class="lvRecord">' + (bt !== null ? fmtTime(bt) : '--:--.--') + ' · ' + bs + ' pont</span>' : '';
+    const label = isHidden && !hiddenOk ? '🔒 ???' : (i + 1) + '. ' + mk().name;
+    const hint = isHidden && !hiddenOk ? '<span class="lvRecord">Szerezz 3 csillagot minden pályán!</span>' : record;
+    b.innerHTML = '<span class="lvMain"><span>' + label + '</span>' + hint + '</span><span>' + (b.disabled ? '' : stars) + '</span>';
+    b.onclick = () => { audio(); G.lives = maxLives(); G.score = 0; G.runStart = G.playT; loadLevel(i); G.banner = 150; G.state = 'play'; resetInput(); showOverlay(null); };
+    box.appendChild(b);
+  });
+  showOverlay('p-levels');
+}
+$('btnLevels').onclick = openLevels;
+$('btnLvBack').onclick = () => showOverlay('p-title');
+$('btnNext').onclick = nextLevel;
+$('btnRetry').onclick = startGame;
+$('btnAgain').onclick = startGame;
+
+/* ---------- Megosztható eredménykártya ---------- */
+function buildShareCard(title, lines) {
+  const c = document.createElement('canvas');
+  c.width = 400; c.height = 225;
+  const g = c.getContext('2d');
+  const th = (G.level && G.level.theme) || THEMES.dawn;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(G.bg || makeBackground(th), 0, 0, VW, VH, 0, 0, 400, 220);
+  g.fillStyle = 'rgba(18,12,42,.55)'; g.fillRect(0, 0, 400, 220);
+  g.fillStyle = '#000000'; g.fillRect(0, 220, 400, 5);
+  g.textAlign = 'center'; g.font = '18px "Press Start 2P", monospace';
+  g.fillStyle = '#000000'; g.fillText(title, 202, 42);
+  g.fillStyle = '#d8d4c4'; g.fillText(title, 200, 40);
+  g.font = '12px "Press Start 2P", monospace';
+  lines.forEach((line, i) => {
+    g.fillStyle = '#000000'; g.fillText(line, 202, 92 + i * 26);
+    g.fillStyle = '#eae6d6'; g.fillText(line, 200, 90 + i * 26);
+  });
+  g.font = '9px "Press Start 2P", monospace'; g.fillStyle = '#eae6d6';
+  g.fillText('Pixel Ugró', 200, 200);
+  return c;
+}
+function shareResult(btn) {
+  const info = G.shareInfo || { title: 'Pixel Ugró', lines: ['Pontszám: ' + G.score] };
+  const canvas = buildShareCard(info.title, info.lines);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    let file = null;
+    try { file = new File([blob], 'pixel-ugro-eredmeny.png', { type: 'image/png' }); } catch (e) { /* régebbi böngésző */ }
+    if (file && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      navigator.share({ files: [file], title: info.title }).catch(() => {});
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'pixel-ugro-eredmeny.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }, 'image/png');
+  if (btn) btn.blur();
+}
+$('btnShareClear').onclick = (e) => shareResult(e.currentTarget);
+$('btnShareOver').onclick = (e) => shareResult(e.currentTarget);
+$('btnShareWin').onclick = (e) => shareResult(e.currentTarget);
+$('btnMainMenu').onclick = goToMainMenu;
+$('btnResume').onclick = resume;
+$('btnRestart').onclick = startGame;
+$('btnPause').onclick = e => { togglePause(); e.currentTarget.blur(); };
+
+
+/* ---------- Fordítsd el a telefont ---------- */
+$('btnRotateOk').onclick = () => { $('rotate').dataset.dismissed = '1'; };
+
+function openSettings(from) { G.settingsFrom = from; showOverlay('p-settings'); }
+$('btnSettings1').onclick = () => openSettings('p-title');
+$('btnSettings2').onclick = () => openSettings('p-pause');
+$('btnSettingsBack').onclick = () => showOverlay(G.settingsFrom || 'p-title');
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  const k = b.parentElement.dataset.setting;
+  SET[k] = b.dataset.v;
+  store.set('pixelUgro.settings', JSON.stringify(SET));
+  applySettings();
+  if (k === 'haptic' && SET.haptic === 'on') buzz(30);
+}));
+
+function syncMute() { $('btnMute').classList.toggle('off', muted); }
+$('btnMute').onclick = e => {
+  muted = !muted; store.set('pixelUgro.muted', muted ? '1' : '0');
+  syncMute(); if (!muted) { audio(); tone(660, 880, 0.08); }
+  e.currentTarget.blur();
+};
+syncMute();
+
+/* ---------- Bemenet ---------- */
+const KEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+  ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', KeyZ: 'jump', KeyX: 'jump' };
+
+addEventListener('keydown', e => {
+  audio();
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (e.repeat) return;
+    if (!$('p-settings').hidden) showOverlay(G.settingsFrom || 'p-title'); else togglePause();
+    return;
+  }
+  const k = KEYS[e.code];
+  if (!k || G.state !== 'play') return;
+  e.preventDefault();
+  if (k === 'jump') { if (!input.jump && !e.repeat) input.jumpPressed = true; input.jump = true; }
+  else input[k] = true;
+});
+addEventListener('keyup', e => {
+  const k = KEYS[e.code];
+  if (!k) return;
+  input[k] = false;
+});
+addEventListener('blur', () => { resetInput(); if (G.state === 'play') togglePause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') togglePause(); });
+addEventListener('touchstart', () => document.documentElement.classList.add('has-touch'), { passive: true, once: true });
+addEventListener('contextmenu', e => e.preventDefault());
+
+/* Irányítógombok: egy ujjal átcsúsztathatsz balról jobbra anélkül, hogy felemelnéd */
+const pad = document.querySelector('.pad');
+const padBtn = { left: pad.querySelector('[data-k="left"]'), right: pad.querySelector('[data-k="right"]') };
+const padPtr = new Map();
+function padDir(e, prev) {
+  const r = pad.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  if (prev === 'left' && x < 0.56) return 'left';   // kis holtsáv középen: nem villog ide-oda
+  if (prev === 'right' && x > 0.44) return 'right';
+  return x < 0.5 ? 'left' : 'right';
+}
+function padSync() {
+  const v = [...padPtr.values()];
+  input.left = v.includes('left');
+  input.right = v.includes('right');
+  padBtn.left.classList.toggle('on', input.left);
+  padBtn.right.classList.toggle('on', input.right);
+}
+pad.addEventListener('pointerdown', e => {
+  e.preventDefault(); audio();
+  try { pad.setPointerCapture(e.pointerId); } catch (err) { /* nem baj */ }
+  padPtr.set(e.pointerId, padDir(e));
+  padSync();
+});
+pad.addEventListener('pointermove', e => {
+  if (!padPtr.has(e.pointerId)) return;
+  padPtr.set(e.pointerId, padDir(e, padPtr.get(e.pointerId)));
+  padSync();
+});
+const padUp = e => { padPtr.delete(e.pointerId); padSync(); };
+pad.addEventListener('pointerup', padUp);
+pad.addEventListener('pointercancel', padUp);
+pad.addEventListener('lostpointercapture', padUp);
+
+const jumpBtn = document.querySelector('.tbtn.jump');
+const jumpPtr = new Set();
+jumpBtn.addEventListener('pointerdown', e => {
+  e.preventDefault(); audio();
+  try { jumpBtn.setPointerCapture(e.pointerId); } catch (err) { /* nem baj */ }
+  jumpPtr.add(e.pointerId);
+  jumpBtn.classList.add('on');
+  if (!input.jump) input.jumpPressed = true;
+  input.jump = true;
+});
+const jumpUp = e => {
+  jumpPtr.delete(e.pointerId);
+  if (!jumpPtr.size) { jumpBtn.classList.remove('on'); input.jump = false; }
+};
+jumpBtn.addEventListener('pointerup', jumpUp);
+jumpBtn.addEventListener('pointercancel', jumpUp);
+jumpBtn.addEventListener('lostpointercapture', jumpUp);
+/* Biztonsági háló a beragadt gombok ellen: ha az ujj elengedése / megszakadása kimaradna a pointer eseményekből
+   (pl. iOS rendszer-gesztus, kilépés a gombról), a touch események alapján újraszámoljuk, mely ujjak vannak tényleg a kijelzőn. */
+function clearPad() { padPtr.clear(); padSync(); }
+function clearJump() { jumpPtr.clear(); jumpBtn.classList.remove('on'); input.jump = false; }
+function reconcileTouches(e) {
+  let padN = 0, jumpN = 0;
+  for (const t of e.touches) {
+    if (pad.contains(t.target)) padN++;
+    else if (jumpBtn.contains(t.target)) jumpN++;
+  }
+  if (padN === 0 && padPtr.size) clearPad();
+  else if (padPtr.size > padN) { while (padPtr.size > padN) padPtr.delete(padPtr.keys().next().value); padSync(); }
+  if (jumpN === 0 && jumpPtr.size) clearJump();
+}
+for (const ev of ['touchstart', 'touchend', 'touchcancel']) document.addEventListener(ev, reconcileTouches, { capture: true, passive: true });
+addEventListener('pointerup', padUp); addEventListener('pointercancel', padUp);
+addEventListener('pointerup', jumpUp); addEventListener('pointercancel', jumpUp);
+addEventListener('blur', () => { clearPad(); clearJump(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearPad(); clearJump(); } });
+document.addEventListener('gesturestart', e => e.preventDefault()); // iOS: ne nagyítson csippentésre
+
+/* ---------- Méretezés ---------- */
+const insetProbe = document.createElement('div');
+insetProbe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
+  'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+document.body.appendChild(insetProbe);
+function fit() {
+  // Mekkora helyet foglal ténylegesen az irányítópad a képernyő alján (0, ha nincs érintős vezérlés).
+  const ctrlPx = $('touch').getBoundingClientRect().height || 0;
+  const base = Math.min(innerWidth / VW, (innerHeight - ctrlPx) / VH);
+  // Ráközelítés: a lehető legnagyobb nagyítás, amelynél a talaj teteje még a gombsáv FÖLÖTT marad,
+  // és a pálya tetejéből legfeljebb MAX_CUT egységet vágunk le.
+  const groundY = 9 * T + 6;
+  let scale = base, top = 0;
+  for (let z = ZOOM; z > 1.001; z -= 0.02) {
+    const s = base * z;
+    if (innerWidth / s < VW) continue;
+    const need = groundY - (innerHeight - ctrlPx) / s;
+    if (need <= MAX_CUT) { scale = s; top = Math.max(0, Math.round(need)); break; }
+  }
+  VIEW_TOP = top;
+  VW_dyn = clamp(Math.round(innerWidth / scale), VW, 2000);
+  VH_dyn = clamp(Math.round(innerHeight / scale), 100, 2000);
+  // HUD: a kijelző lekerekített sarkai / safe area miatt beljebb
+  const cs = getComputedStyle(insetProbe);
+  HUD_L = Math.round(((parseFloat(cs.paddingLeft) || 0) + 26) / scale);
+  HUD_T = Math.round(((parseFloat(cs.paddingTop) || 0) + 18) / scale);
+  canvas.width = VW_dyn; canvas.height = VH_dyn;
+  ctx.imageSmoothingEnabled = false;
+  if (G.level) G.bg = makeBackground(G.level.theme, VW_dyn);
+  document.documentElement.style.setProperty('--w', (VW_dyn * scale) + 'px');
+  document.documentElement.style.setProperty('--h', (VH_dyn * scale) + 'px');
+}
+addEventListener('resize', fit);
+addEventListener('orientationchange', fit);
+fit();
+
+/* ---------- Főciklus ---------- */
+const STEP = 1000 / 60;
+let last = 0, acc = 0;
+function frame(now) {
+  if (!last) last = now;
+  acc += Math.min(100, now - last);
+  last = now;
+  let n = 0;
+  while (acc >= STEP && n < 6) { update(); acc -= STEP; n++; }
+  if (n === 6) acc = 0;
+  render();
+  requestAnimationFrame(frame);
+}
+
+applySettings();
+$('hapticHint').hidden = typeof navigator !== 'undefined' && 'vibrate' in navigator;
+loadLevel(0);
+showOverlay('p-title');
+requestAnimationFrame(frame);
+})();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => { /* offline-mentés nem kötelező */ });
+    });
+  }
+</script>
+</body>
+</html>
